@@ -1,0 +1,18 @@
+region: ap-northeast-1
+cluster: my-cluster
+
+params:
+  ImageTag: aaa
+
+task_definitions:
+  - name: API
+    file: api.json
+  - name: Worker
+    file: worker.json
+services:
+  - name: API
+    task_definition: API
+    file: api_service.json
+  - name: Worker
+    task_definition: Worker
+    file: worker_service.json
