@@ -26,9 +26,9 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestResolveConfigStack(t *testing.T) {
+func TestLoadConfigStack(t *testing.T) {
 	path := filepath.Join("test_files", "example1", "overlays", "develop", "config.yml")
-	cs, err := resolveConfigStack(path)
+	cs, err := loadConfigStack(path)
 	if err != nil {
 		t.Fatal(err)
 	}

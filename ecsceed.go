@@ -1,43 +1,14 @@
 package ecsceed
 
 import (
-	"bytes"
-	"encoding/json"
 	"path/filepath"
-	"text/template"
 
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/imdario/mergo"
 )
 
 type App struct {
 	nameToTd  map[string]ecs.TaskDefinition
 	nameToSrv map[string]ecs.Service
-}
-
-func loadAndMatchTmpl(file string, params Params, dst interface{}) error {
-	tpl, err := template.ParseFiles(file)
-	if err != nil {
-		return err
-	}
-	buf := bytes.NewBuffer(nil)
-	err = tpl.Execute(buf, params)
-	if err != nil {
-		return err
-	}
-	d := json.NewDecoder(buf)
-	if err := d.Decode(dst); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func mergeTaskDefinition(p *ecs.TaskDefinition, c ecs.TaskDefinition) error {
-	return mergo.Merge(p, c)
-}
-func mergeService(p *ecs.Service, c ecs.Service) error {
-	return mergo.Merge(p, c)
 }
 
 func NewApp(path string) (*App, error) {
