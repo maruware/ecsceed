@@ -41,7 +41,7 @@ func mergeService(p *ecs.Service, c ecs.Service) error {
 }
 
 func NewApp(path string) (*App, error) {
-	cs, err := resolveConfigStack(path)
+	cs, err := loadConfigStack(path)
 	if err != nil {
 		return nil, err
 	}

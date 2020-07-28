@@ -33,7 +33,7 @@ type Config struct {
 
 type ConfigStack []Config
 
-func resolveConfigStack(path string) (ConfigStack, error) {
+func loadConfigStack(path string) (ConfigStack, error) {
 
 	var tmpPath string
 	tmpPath = path
