@@ -14,6 +14,10 @@ func TestNewApp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	err = app.ResolveConfigStack(ecsceed.Params{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	assert.Equal(t, 2, app.TaskDefinitionsNum(), "bad task definitions num")
 	assert.Equal(t, 2, app.ServicesNum(), "bad services num")

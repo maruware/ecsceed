@@ -7,6 +7,7 @@ import (
 )
 
 type App struct {
+	cs        ConfigStack
 	nameToTd  map[string]ecs.TaskDefinition
 	nameToSrv map[string]ecs.Service
 }
@@ -16,40 +17,44 @@ func NewApp(path string) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewAppWithConfigStack(cs)
+	return NewAppWithConfigStack(cs), nil
 }
 
-func NewAppWithConfigStack(config ConfigStack) (*App, error) {
-	params := Params{}
-	for _, c := range config {
+func NewAppWithConfigStack(cs ConfigStack) *App {
+	return &App{cs: cs}
+}
+
+func (a *App) ResolveConfigStack(additionalParams Params) error {
+	params := additionalParams
+	for _, c := range a.cs {
 		for k, v := range c.Params {
 			params[k] = v
 		}
 	}
 
 	nameToTd := map[string]ecs.TaskDefinition{}
-	for _, c := range config {
+	for _, c := range a.cs {
 		for _, tdc := range c.TaskDefinitions {
 			var td ecs.TaskDefinition
 
 			if len(tdc.BaseFile) > 0 {
 				path, err := filepath.Abs(filepath.Join(c.dir, tdc.BaseFile))
 				if err != nil {
-					return nil, err
+					return err
 				}
 				err = loadAndMatchTmpl(path, params, &td)
 				if err != nil {
-					return nil, err
+					return err
 				}
 			}
 			if len(tdc.File) > 0 {
 				path, err := filepath.Abs(filepath.Join(c.dir, tdc.File))
 				if err != nil {
-					return nil, err
+					return err
 				}
 				err = loadAndMatchTmpl(path, params, &td)
 				if err != nil {
-					return nil, err
+					return err
 				}
 			}
 
@@ -60,17 +65,17 @@ func NewAppWithConfigStack(config ConfigStack) (*App, error) {
 	}
 
 	nameToSrv := map[string]ecs.Service{}
-	for _, c := range config {
+	for _, c := range a.cs {
 		for _, sc := range c.Services {
 			var srv ecs.Service
 			path, err := filepath.Abs(filepath.Join(c.dir, sc.File))
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			err = loadAndMatchTmpl(path, params, &srv)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			// overwrite overlay def
@@ -79,10 +84,10 @@ func NewAppWithConfigStack(config ConfigStack) (*App, error) {
 		}
 	}
 
-	return &App{
-		nameToTd:  nameToTd,
-		nameToSrv: nameToSrv,
-	}, nil
+	a.nameToTd = nameToTd
+	a.nameToSrv = nameToSrv
+
+	return nil
 }
 
 func (a *App) TaskDefinitionsNum() int {
