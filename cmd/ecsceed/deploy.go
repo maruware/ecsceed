@@ -26,6 +26,14 @@ func deployCommand() *cli.Command {
 				Aliases: []string{"p"},
 				Usage:   "additional params",
 			},
+			&cli.BoolFlag{
+				Name:  "update-service",
+				Usage: "update service",
+			},
+			&cli.BoolFlag{
+				Name:  "force-new-deploy",
+				Usage: "force new deploy",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			ctx := context.Background()
@@ -41,13 +49,18 @@ func deployCommand() *cli.Command {
 				params[e[0]] = e[1]
 			}
 
+			updateService := c.Bool("update-service")
+			forceNewDeploy := c.Bool("force-new-deploy")
+
 			app, err := ecsceed.NewApp(config)
 			if err != nil {
 				return err
 			}
 
 			err = app.Deploy(ctx, ecsceed.DeployOption{
-				AdditionalParams: params,
+				AdditionalParams:   params,
+				UpdateService:      updateService,
+				ForceNewDeployment: &forceNewDeploy,
 			})
 			if err != nil {
 				return err
