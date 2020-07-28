@@ -3,13 +3,24 @@ package ecsceed
 import (
 	"path/filepath"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
 type App struct {
+	ecs       *ecs.ECS
 	cs        ConfigStack
 	nameToTd  map[string]ecs.TaskDefinition
-	nameToSrv map[string]ecs.Service
+	nameToSrv map[string]Service
+	region    string
+	cluster   string
+}
+
+type Service struct {
+	srv            ecs.Service
+	taskDefinition string
 }
 
 func NewApp(path string) (*App, error) {
@@ -21,15 +32,33 @@ func NewApp(path string) (*App, error) {
 }
 
 func NewAppWithConfigStack(cs ConfigStack) *App {
-	return &App{cs: cs}
+	var region string
+	var cluster string
+	for _, c := range cs {
+		if len(c.Region) > 0 {
+			region = c.Region
+		}
+		if len(c.Cluster) > 0 {
+			cluster = c.Cluster
+		}
+	}
+
+	config := aws.NewConfig()
+	config.Region = aws.String(region)
+	sess := session.New(config)
+	c := ecs.New(sess)
+	return &App{ecs: c, cs: cs, region: region, cluster: cluster}
 }
 
 func (a *App) ResolveConfigStack(additionalParams Params) error {
-	params := additionalParams
+	params := Params{}
 	for _, c := range a.cs {
 		for k, v := range c.Params {
 			params[k] = v
 		}
+	}
+	for k, v := range additionalParams {
+		params[k] = v
 	}
 
 	nameToTd := map[string]ecs.TaskDefinition{}
@@ -64,7 +93,7 @@ func (a *App) ResolveConfigStack(additionalParams Params) error {
 		}
 	}
 
-	nameToSrv := map[string]ecs.Service{}
+	nameToSrv := map[string]Service{}
 	for _, c := range a.cs {
 		for _, sc := range c.Services {
 			var srv ecs.Service
@@ -80,7 +109,10 @@ func (a *App) ResolveConfigStack(additionalParams Params) error {
 
 			// overwrite overlay def
 			name := sc.Name
-			nameToSrv[name] = srv
+			nameToSrv[name] = Service{
+				srv:            srv,
+				taskDefinition: sc.TaskDefinition,
+			}
 		}
 	}
 
@@ -102,6 +134,6 @@ func (a *App) GetTaskDefinition(name string) ecs.TaskDefinition {
 	return a.nameToTd[name]
 }
 
-func (a *App) GetService(name string) ecs.Service {
+func (a *App) GetService(name string) Service {
 	return a.nameToSrv[name]
 }
