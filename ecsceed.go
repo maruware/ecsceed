@@ -117,6 +117,15 @@ func NewAppWithConfigStack(config ConfigStack) (*App, error) {
 func (a *App) TaskDefinitionsNum() int {
 	return len(a.nameToTd)
 }
+
 func (a *App) ServicesNum() int {
 	return len(a.nameToSrv)
+}
+
+func (a *App) GetTaskDefinition(name string) ecs.TaskDefinition {
+	return a.nameToTd[name]
+}
+
+func (a *App) GetService(name string) ecs.Service {
+	return a.nameToSrv[name]
 }

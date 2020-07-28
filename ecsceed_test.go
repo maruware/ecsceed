@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/maruware/ecsceed"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewApp(t *testing.T) {
@@ -14,10 +15,11 @@ func TestNewApp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if app.TaskDefinitionsNum() != 2 {
-		t.Errorf("expect 2 task definitions")
-	}
-	if app.ServicesNum() != 2 {
-		t.Errorf("expect 2 services")
-	}
+	assert.Equal(t, 2, app.TaskDefinitionsNum(), "bad task definitions num")
+	assert.Equal(t, 2, app.ServicesNum(), "bad services num")
+
+	apiTd := app.GetTaskDefinition("API")
+
+	assert.Equal(t, "/bin/api", *apiTd.ContainerDefinitions[0].Command[0], "bad api command")
+	assert.Equal(t, "my-image:latest", *apiTd.ContainerDefinitions[0].Image, "bad api image")
 }
