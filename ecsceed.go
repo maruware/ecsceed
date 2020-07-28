@@ -16,6 +16,8 @@ type App struct {
 	nameToSrv map[string]Service
 	region    string
 	cluster   string
+
+	Debug bool
 }
 
 type Service struct {
@@ -48,6 +50,10 @@ func NewAppWithConfigStack(cs ConfigStack) *App {
 	sess := session.New(config)
 	c := ecs.New(sess)
 	return &App{ecs: c, cs: cs, region: region, cluster: cluster}
+}
+
+func (a *App) Name() string {
+	return "ecsceed"
 }
 
 func (a *App) ResolveConfigStack(additionalParams Params) error {
