@@ -9,8 +9,9 @@ import (
 )
 
 type ConfigTaskDef struct {
-	Name string `yaml:"name"`
-	File string `yaml:"file"`
+	Name     string `yaml:"name"`
+	BaseFile string `yaml:"base_file"`
+	File     string `yaml:"file"`
 }
 
 type ConfigService struct {
@@ -26,6 +27,8 @@ type Config struct {
 	TaskDefinitions []ConfigTaskDef `yaml:"task_definitions"`
 	Services        []ConfigService `yaml:"services"`
 	Base            string          `yaml:"base"`
+
+	dir string
 }
 
 type ConfigStack []Config
@@ -47,11 +50,13 @@ func resolveConfigStack(path string) (ConfigStack, error) {
 			return nil, err
 		}
 
+		c.dir = filepath.Dir(tmpPath)
+
 		// unshift
 		cs = append([]Config{c}, cs...)
 
 		if len(c.Base) > 0 {
-			p, err := filepath.Abs(filepath.Join(filepath.Dir(tmpPath), c.Base))
+			p, err := filepath.Abs(filepath.Join(c.dir, c.Base))
 			if err != nil {
 				return nil, err
 			}

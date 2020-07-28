@@ -2,13 +2,19 @@ region: ap-northeast-1
 cluster: my-cluster
 
 params:
-  ImageTag: aaa
+  ImageTag: latest
+  # LogGroup:
+  ExecutionRoleArn: my-task-execution-role-arn
+  TaskRoleArn: my-task-role-arn
+  ApiTargetGroupArn: my-alb-target-group-arn
 
 task_definitions:
   - name: API
-    file: api.json
+    base_file: common_td.json
+    file: api_td.json
   - name: Worker
-    file: worker.json
+    base_file: common_td.json
+    file: worker_td.json
 services:
   - name: API
     task_definition: API

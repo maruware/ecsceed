@@ -1,0 +1,16 @@
+{
+  "containerDefinitions": [
+    {
+      "command": [
+        "/bin/worker"
+      ],
+      "memoryReservation": 2048,
+      "logConfiguration": {
+        "options": {
+          "awslogs-stream-prefix": "worker"
+        }
+      }
+    }
+  ],
+  "family": "worker"
+}

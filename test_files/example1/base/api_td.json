@@ -1,0 +1,24 @@
+{
+    "containerDefinitions": [
+      {
+        "command": [
+          "/bin/api"
+        ],
+        "memoryReservation": 1024,
+        "portMappings": [
+          {
+            "containerPort": 8080,
+            "hostPort": 0,
+            "protocol": "tcp"
+          }
+        ],
+        "logConfiguration": {
+          "options": {
+            "awslogs-stream-prefix": "api"
+          }
+        }
+      }
+    ],
+    "family": "api"
+  }
+  

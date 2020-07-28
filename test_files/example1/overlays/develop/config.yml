@@ -1,11 +1,4 @@
-base: ../base
+base: ../../base/config.yml
 
 params:
-  Hoge: hoge
-
-task_definitions:
-  - name: API
-    file: api.json
-services:
-  - name: myService
-    task_definition: API
+  LogGroup: /ecs/develop
