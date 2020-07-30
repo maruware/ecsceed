@@ -4,19 +4,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
+	"github.com/fatih/color"
 )
 
 func (a *App) Log(v ...interface{}) {
-	args := []interface{}{a.Name()}
-	args = append(args, v...)
-	log.Println(args...)
+	log.Println(v...)
 }
 
 func (a *App) DebugLog(v ...interface{}) {
 	if !a.Debug {
 		return
 	}
-	a.Log(v...)
+
+	debug := color.MagentaString("[DEBUG]")
+	args := []interface{}{debug}
+	args = append(args, v...)
+
+	a.Log(args...)
+}
+
+func LogDone() string {
+	return color.GreenString("\u2713")
+}
+
+func LogTarget(v interface{}) string {
+	return color.CyanString("%+v", v)
 }
 
 func (a *App) LogJSON(v interface{}) {

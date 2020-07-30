@@ -9,6 +9,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
+type Service struct {
+	srv            ecs.Service
+	taskDefinition string
+}
+
 type App struct {
 	ecs       *ecs.ECS
 	cs        ConfigStack
@@ -18,11 +23,6 @@ type App struct {
 	cluster   string
 
 	Debug bool
-}
-
-type Service struct {
-	srv            ecs.Service
-	taskDefinition string
 }
 
 func NewApp(path string) (*App, error) {
@@ -49,6 +49,7 @@ func NewAppWithConfigStack(cs ConfigStack) *App {
 	config.Region = aws.String(region)
 	sess := session.New(config)
 	c := ecs.New(sess)
+
 	return &App{ecs: c, cs: cs, region: region, cluster: cluster}
 }
 

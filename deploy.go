@@ -3,7 +3,6 @@ package ecsceed
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 )
@@ -41,11 +40,11 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		return err
 	}
 
-	a.DebugLog("desc", desc)
-
 	for _, d := range desc.Failures {
-		s := strings.Split(*d.Arn, "/")
-		name := s[1]
+		name := arnToName(*d.Arn)
+
+		a.DebugLog("no exist service", name)
+
 		srv := a.nameToSrv[name]
 		tdArn, ok := nameToTdArn[srv.taskDefinition]
 		if !ok {
@@ -62,6 +61,9 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 	for _, d := range desc.Services {
 		if *d.Status == "INACTIVE" {
 			name := *d.ServiceName
+
+			a.DebugLog("INACTIVE service", name)
+
 			srv := a.nameToSrv[name]
 			tdArn, ok := nameToTdArn[srv.taskDefinition]
 			if !ok {
@@ -81,10 +83,7 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 				return err
 			}
 		}
-
 	}
-
-	a.Log("desc", desc)
 
 	// update service
 	for name, srv := range a.nameToSrv {

@@ -58,7 +58,8 @@ func (a *App) RegisterTaskDefinition(ctx context.Context, td *ecs.TaskDefinition
 		return nil, err
 	}
 
-	a.Log("registered task definition", arnToName(*out.TaskDefinition.TaskDefinitionArn))
+	name := arnToName(*out.TaskDefinition.TaskDefinitionArn)
+	a.Log(LogDone(), "registered task definition", LogTarget(name))
 	return out.TaskDefinition, nil
 }
 
@@ -101,7 +102,8 @@ func (a *App) UpdateServiceTask(ctx context.Context, name string, cluster string
 	}
 	time.Sleep(delayForServiceChanged) // wait for service updated
 
-	a.Log("update service task definition", name, arnToName(taskDefinitionArn))
+	a.Log(LogDone(), "update service task definition",
+		LogTarget(name), "with", LogTarget(arnToName(taskDefinitionArn)))
 	return nil
 }
 
