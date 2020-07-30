@@ -314,7 +314,7 @@ func (a *App) RunTask(ctx context.Context, srv ecs.Service, tdArn string, count 
 	}
 
 	task := out.Tasks[0]
-	a.Log("Task ARN", LogTarget(*task.TaskArn))
+	a.Log("ran task", LogTarget(*task.TaskArn))
 	return task, nil
 }
 
@@ -341,9 +341,9 @@ func (a *App) GetLogEventsInput(logGroup string, logStream string, startAt int64
 	}
 }
 
-func (d *App) GetLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time) (int, error) {
+func (a *App) GetLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time) (int, error) {
 	ms := startedAt.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
-	out, err := d.cwl.GetLogEventsWithContext(ctx, d.GetLogEventsInput(logGroup, logStream, ms))
+	out, err := a.cwl.GetLogEventsWithContext(ctx, a.GetLogEventsInput(logGroup, logStream, ms))
 	if err != nil {
 		return 0, err
 	}
