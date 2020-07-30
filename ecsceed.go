@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
+const version = "v0.0.1"
+
 type Service struct {
 	srv            ecs.Service
 	taskDefinition string
