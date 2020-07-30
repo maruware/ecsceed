@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
@@ -17,8 +18,11 @@ type Service struct {
 }
 
 type App struct {
-	ecs       *ecs.ECS
-	cs        ConfigStack
+	ecs *ecs.ECS
+	cwl *cloudwatchlogs.CloudWatchLogs
+	cs  ConfigStack
+
+	params    Params
 	nameToTd  map[string]ecs.TaskDefinition
 	nameToSrv map[string]Service
 	region    string
@@ -50,9 +54,14 @@ func NewAppWithConfigStack(cs ConfigStack) *App {
 	config := aws.NewConfig()
 	config.Region = aws.String(region)
 	sess := session.New(config)
-	c := ecs.New(sess)
 
-	return &App{ecs: c, cs: cs, region: region, cluster: cluster}
+	return &App{
+		ecs:     ecs.New(sess),
+		cwl:     cloudwatchlogs.New(sess),
+		cs:      cs,
+		region:  region,
+		cluster: cluster,
+	}
 }
 
 func (a *App) Name() string {
@@ -125,6 +134,7 @@ func (a *App) ResolveConfigStack(additionalParams Params) error {
 		}
 	}
 
+	a.params = params
 	a.nameToTd = nameToTd
 	a.nameToSrv = nameToSrv
 

@@ -12,6 +12,7 @@ func main() {
 
 	app.Commands = []*cli.Command{
 		deployCommand(),
+		runCommand(),
 	}
 
 	err := app.Run(os.Args)

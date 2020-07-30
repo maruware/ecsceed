@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/mattn/go-isatty"
 	"github.com/morikuni/aec"
@@ -37,6 +39,24 @@ func formatDeployment(d *ecs.Deployment) string {
 func formatEvent(e *ecs.ServiceEvent, chars int) []string {
 	line := fmt.Sprintf("%s \t%s",
 		e.CreatedAt.In(timezone).Format("2006/01/02 15:04:05"),
+		*e.Message,
+	)
+	lines := []string{}
+	n := len(line)/chars + 1
+	for i := 0; i < n; i++ {
+		if i == n-1 {
+			lines = append(lines, line[i*chars:])
+		} else {
+			lines = append(lines, line[i*chars:(i+1)*chars])
+		}
+	}
+	return lines
+}
+
+func formatLogEvent(e *cloudwatchlogs.OutputLogEvent, chars int) []string {
+	t := time.Unix((*e.Timestamp / int64(1000)), 0)
+	line := fmt.Sprintf("%s \t%s",
+		t.In(timezone).Format("2006/01/02 15:04:05"),
 		*e.Message,
 	)
 	lines := []string{}
@@ -260,4 +280,170 @@ func (a *App) WaitServiceStable(ctx context.Context, startedAt time.Time, names 
 			Services: names,
 		},
 	)
+}
+
+func (a *App) DescribeTaskDefinition(ctx context.Context, tdArn string) (*ecs.TaskDefinition, error) {
+	out, err := a.ecs.DescribeTaskDefinitionWithContext(ctx, &ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: &tdArn,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out.TaskDefinition, nil
+}
+
+func (a *App) RunTask(ctx context.Context, srv ecs.Service, tdArn string, count int64, ov *ecs.TaskOverride) (*ecs.Task, error) {
+	out, err := a.ecs.RunTaskWithContext(ctx, &ecs.RunTaskInput{
+		CapacityProviderStrategy: srv.CapacityProviderStrategy,
+		Cluster:                  srv.ClusterArn,
+		Count:                    aws.Int64(count),
+		LaunchType:               srv.LaunchType,
+		NetworkConfiguration:     srv.NetworkConfiguration,
+		PlacementConstraints:     srv.PlacementConstraints,
+		PlacementStrategy:        srv.PlacementStrategy,
+		PlatformVersion:          srv.PlatformVersion,
+		TaskDefinition:           aws.String(tdArn),
+		Overrides:                ov,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(out.Failures) > 0 {
+		f := out.Failures[0]
+		return nil, errors.New(*f.Reason)
+	}
+
+	task := out.Tasks[0]
+	a.Log("Task ARN", LogTarget(*task.TaskArn))
+	return task, nil
+}
+
+func (a *App) GetLogInfo(task *ecs.Task, c *ecs.ContainerDefinition) (string, string) {
+	p := strings.Split(*task.TaskArn, "/")
+	taskID := p[len(p)-1]
+	lc := c.LogConfiguration
+	logStreamPrefix := *lc.Options["awslogs-stream-prefix"]
+
+	logStream := strings.Join([]string{logStreamPrefix, *c.Name, taskID}, "/")
+	logGroup := *lc.Options["awslogs-group"]
+
+	a.Log("logGroup:", logGroup)
+	a.Log("logStream:", logStream)
+
+	return logGroup, logStream
+}
+
+func (a *App) GetLogEventsInput(logGroup string, logStream string, startAt int64) *cloudwatchlogs.GetLogEventsInput {
+	return &cloudwatchlogs.GetLogEventsInput{
+		LogGroupName:  aws.String(logGroup),
+		LogStreamName: aws.String(logStream),
+		StartTime:     aws.Int64(startAt),
+	}
+}
+
+func (d *App) GetLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time) (int, error) {
+	ms := startedAt.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
+	out, err := d.cwl.GetLogEventsWithContext(ctx, d.GetLogEventsInput(logGroup, logStream, ms))
+	if err != nil {
+		return 0, err
+	}
+	if len(out.Events) == 0 {
+		return 0, nil
+	}
+	lines := 0
+	for _, event := range out.Events {
+		for _, line := range formatLogEvent(event, TerminalWidth) {
+			fmt.Println(line)
+			lines++
+		}
+	}
+	return lines, nil
+}
+
+func (a *App) WaitRunTask(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition, startedAt time.Time) error {
+	a.Log("Waiting for run task...(it may take a while)")
+	waitCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	lc := watchContainer.LogConfiguration
+	if lc == nil || *lc.LogDriver != "awslogs" || lc.Options["awslogs-stream-prefix"] == nil {
+		a.Log("awslogs not configured")
+		if err := a.WaitUntilTaskStopped(ctx, task); err != nil {
+			return errors.Wrap(err, "failed to run task")
+		}
+		return nil
+	}
+
+	logGroup, logStream := a.GetLogInfo(task, watchContainer)
+	time.Sleep(3 * time.Second) // wait for log stream
+
+	go func() {
+		tick := time.Tick(5 * time.Second)
+		var lines int
+		for {
+			select {
+			case <-waitCtx.Done():
+				return
+			case <-tick:
+				if isTerminal {
+					for i := 0; i < lines; i++ {
+						fmt.Print(aec.EraseLine(aec.EraseModes.All), aec.PreviousLine(1))
+					}
+				}
+				lines, _ = a.GetLogEvents(waitCtx, logGroup, logStream, startedAt)
+			}
+		}
+	}()
+
+	if err := a.WaitUntilTaskStopped(ctx, task); err != nil {
+		return errors.Wrap(err, "failed to run task")
+	}
+	return nil
+}
+
+func (a *App) WaitUntilTaskStopped(ctx context.Context, task *ecs.Task) error {
+	return a.ecs.WaitUntilTasksStoppedWithContext(
+		ctx, a.DescribeTasksInput(task),
+	)
+}
+
+func (a *App) DescribeTasksInput(task *ecs.Task) *ecs.DescribeTasksInput {
+	return &ecs.DescribeTasksInput{
+		Cluster: aws.String(a.cluster),
+		Tasks:   []*string{task.TaskArn},
+	}
+}
+
+func (d *App) DescribeTaskStatus(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition) error {
+	out, err := d.ecs.DescribeTasksWithContext(ctx, d.DescribeTasksInput(task))
+	if err != nil {
+		return err
+	}
+	if len(out.Failures) > 0 {
+		f := out.Failures[0]
+		d.Log("Task ARN: " + *f.Arn)
+		return errors.New(*f.Reason)
+	}
+
+	var container *ecs.Container
+	for _, c := range out.Tasks[0].Containers {
+		if *c.Name == *watchContainer.Name {
+			container = c
+			break
+		}
+	}
+	if container == nil {
+		container = out.Tasks[0].Containers[0]
+	}
+
+	if container.ExitCode != nil && *container.ExitCode != 0 {
+		msg := fmt.Sprintf("Container: %s, Exit Code: %s", *container.Name, strconv.FormatInt(*container.ExitCode, 10))
+		if container.Reason != nil {
+			msg += ", Reason: " + *container.Reason
+		}
+		return errors.New(msg)
+	} else if container.Reason != nil {
+		return fmt.Errorf("Container: %s, Reason: %s", *container.Name, *container.Reason)
+	}
+	return nil
 }
