@@ -66,44 +66,40 @@ build-darwin-386:
 	@$(MAKE) build GOOS=darwin GOARCH=386
 
 $(RELEASE_DIR)/$(PROJECTNAME)_$(GOOS)_$(GOARCH)/$(PROJECTNAME)$(SUFFIX): deps
-	@GO111MODULE=on go build -o $(RELEASE_DIR)/$(PROJECTNAME)_$(GOOS)_$(GOARCH)/$(PROJECTNAME)$(SUFFIX) cmd/$(PROJECTNAME)/main.go
+	@GO111MODULE=on go build -o $(RELEASE_DIR)/$(PROJECTNAME)_$(GOOS)_$(GOARCH)/$(PROJECTNAME)$(SUFFIX) ./cmd/$(PROJECTNAME)/.
 
 all: $(BUILD_TARGETS)
 
 release: $(RELEASE_TARGETS)
 
-$(RELEASE_DIR)/$(PROJECTNAME)_$(GOOS)_$(GOARCH)/Changes:
-	@cp Changes $(RELEASE_DIR)/$(PROJECTNAME)_$(GOOS)_$(GOARCH)
-
 $(RELEASE_DIR)/$(PROJECTNAME)_$(GOOS)_$(GOARCH)/README.md:
 	@cp README.md $(RELEASE_DIR)/$(PROJECTNAME)_$(GOOS)_$(GOARCH)
 
-release-changes: $(RELEASE_DIR)/$(PROJECTNAME)_$(GOOS)_$(GOARCH)/Changes
 release-readme: $(RELEASE_DIR)/$(PROJECTNAME)_$(GOOS)_$(GOARCH)/README.md
 
 release-windows-amd64: build-windows-amd64
-	@$(MAKE) release-changes release-readme release-zip GOOS=windows GOARCH=amd64
+	@$(MAKE) release-readme release-zip GOOS=windows GOARCH=amd64
 
 release-windows-386: build-windows-386
-	@$(MAKE) release-changes release-readme release-zip GOOS=windows GOARCH=386
+	@$(MAKE) release-readme release-zip GOOS=windows GOARCH=386
 
 release-linux-amd64: build-linux-amd64
-	@$(MAKE) release-changes release-readme release-targz GOOS=linux GOARCH=amd64
+	@$(MAKE) release-readme release-targz GOOS=linux GOARCH=amd64
 
 release-linux-arm: build-linux-arm
-	@$(MAKE) release-changes release-readme release-targz GOOS=linux GOARCH=arm
+	@$(MAKE) release-readme release-targz GOOS=linux GOARCH=arm
 
 release-linux-arm64: build-linux-arm64
-	@$(MAKE) release-changes release-readme release-targz GOOS=linux GOARCH=arm64
+	@$(MAKE) release-readme release-targz GOOS=linux GOARCH=arm64
 
 release-linux-386: build-linux-386
-	@$(MAKE) release-changes release-readme release-targz GOOS=linux GOARCH=386
+	@$(MAKE) release-readme release-targz GOOS=linux GOARCH=386
 
 release-darwin-amd64: build-darwin-amd64
-	@$(MAKE) release-changes release-readme release-zip GOOS=darwin GOARCH=amd64
+	@$(MAKE) release-readme release-zip GOOS=darwin GOARCH=amd64
 
 release-darwin-386: build-darwin-386
-	@$(MAKE) release-changes release-readme release-zip GOOS=darwin GOARCH=386
+	@$(MAKE) release-readme release-zip GOOS=darwin GOARCH=386
 
 $(ARTIFACTS_DIR):
 	@mkdir -p $(ARTIFACTS_DIR)
