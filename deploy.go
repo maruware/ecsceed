@@ -114,5 +114,7 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		}
 	}
 
+	a.Log("Finish!")
+
 	return nil
 }
