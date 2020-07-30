@@ -15,7 +15,7 @@ See [test_files/example1](test_files/example1)
 
 ## Install
 
-TODO
+Download a binary from the [release page]
 
 ## Usage
 
@@ -93,12 +93,50 @@ JSON template uses [text/template](https://golang.org/pkg/text/template/) module
 
 ### Deploy
 
+```
+$ ecsceed deploy help                                                                        master ✚
+NAME:
+   ecsceed deploy - deploy
+
+USAGE:
+   ecsceed deploy [command options] [arguments...]
+
+OPTIONS:
+   --config value, -c value  specify config path
+   --param value, -p value   additional params
+   --update-service          update service (default: false)
+   --force-new-deploy        force new deploy (default: false)
+   --no-wait                 no wait for services stable (default: false)
+   --help, -h                show help (default: false)
+```
+
 ```bash
 ecsceed deploy -c overlays/develop/config.yml -p ImageTag=$(git rev-parse HEAD)
 ```
 
-### Exec
+### Run
+
+```
+$ ecsceed run help                                                                       ✘ 1 master ✚
+NAME:
+   ecsceed run - run
+
+USAGE:
+   ecsceed run [command options] [arguments...]
+
+OPTIONS:
+   --service value, -s value  service name
+   --config value, -c value   specify config path
+   --param value, -p value    additional params
+   --no-wait                  no wait for services stable (default: false)
+   --count value              count (default: 1)
+   --task-def value           task definition
+   --overrides value          task definition overrides
+   --command value            execute command
+   --container value          specify container name
+   --help, -h                 show help (default: false)
+```
 
 ```bash
-ecsceed exec -c overlays/develop/config.yml api echo test
+ecsceed run -c overlays/develop/config.yml -s api --command "echo test"
 ```
