@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,6 +15,11 @@ import (
 
 var isTerminal = isatty.IsTerminal(os.Stdout.Fd())
 var delayForServiceChanged = 3 * time.Second
+
+func arnToName(s string) string {
+	ns := strings.Split(s, "/")
+	return ns[len(ns)-1]
+}
 
 func tdToRegisterTaskDefinitionInput(td *ecs.TaskDefinition) *ecs.RegisterTaskDefinitionInput {
 	return &ecs.RegisterTaskDefinitionInput{
@@ -51,6 +57,8 @@ func (a *App) RegisterTaskDefinition(ctx context.Context, td *ecs.TaskDefinition
 	if err != nil {
 		return nil, err
 	}
+
+	a.Log("registered task definition", arnToName(*out.TaskDefinition.TaskDefinitionArn))
 	return out.TaskDefinition, nil
 }
 
@@ -92,6 +100,8 @@ func (a *App) UpdateServiceTask(ctx context.Context, name string, cluster string
 		return fmt.Errorf("failed to update service task: %w", err)
 	}
 	time.Sleep(delayForServiceChanged) // wait for service updated
+
+	a.Log("update service task definition", name, arnToName(taskDefinitionArn))
 	return nil
 }
 
