@@ -13,7 +13,7 @@ See [test_files/example1](test_files/example1)
 
 ## Install
 
-Download a binary from the [release page]
+Download a binary from the [release page](releases)
 
 ## Usage
 
