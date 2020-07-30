@@ -34,12 +34,14 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 	// create service if not exist
 	srvNames := []*string{}
 	for name, _ := range a.nameToSrv {
-		srvNames = append(srvNames, &name)
+		srvNames = append(srvNames, aws.String(name))
 	}
 	desc, err := a.DescribeServices(ctx, a.cluster, srvNames)
 	if err != nil {
 		return err
 	}
+
+	a.DebugLog("desc", desc)
 
 	for _, d := range desc.Failures {
 		s := strings.Split(*d.Arn, "/")
@@ -56,6 +58,30 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		if err != nil {
 			return err
 		}
+	}
+	for _, d := range desc.Services {
+		if *d.Status == "INACTIVE" {
+			name := *d.ServiceName
+			srv := a.nameToSrv[name]
+			tdArn, ok := nameToTdArn[srv.taskDefinition]
+			if !ok {
+				return fmt.Errorf("Bad reference service to task definition")
+			}
+
+			// once delete
+			err := a.DeleteService(ctx, name, a.cluster, true)
+			if err != nil {
+				return err
+			}
+
+			def := srv.srv
+			def.ServiceName = aws.String(name)
+			err = a.CreateService(ctx, a.cluster, tdArn, def)
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
 	a.Log("desc", desc)

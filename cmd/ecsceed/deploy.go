@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/maruware/ecsceed"
@@ -55,6 +56,10 @@ func deployCommand() *cli.Command {
 			app, err := ecsceed.NewApp(config)
 			if err != nil {
 				return err
+			}
+
+			if len(os.Getenv("DEBUG")) > 0 {
+				app.Debug = true
 			}
 
 			err = app.Deploy(ctx, ecsceed.DeployOption{

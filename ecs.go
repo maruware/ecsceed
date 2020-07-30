@@ -2,6 +2,7 @@ package ecsceed
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -64,7 +65,7 @@ func (a *App) UpdateServiceAttributes(ctx context.Context, srv *ecs.Service, nam
 	if err != nil {
 		return nil, err
 	}
-	// time.Sleep(delayForServiceChanged) // wait for service updated
+	time.Sleep(delayForServiceChanged) // wait for service updated
 	sv := out.Service
 
 	return sv, nil
@@ -88,9 +89,9 @@ func (a *App) UpdateServiceTask(ctx context.Context, name string, cluster string
 
 	_, err := a.ecs.UpdateServiceWithContext(ctx, in)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update service task: %w", err)
 	}
-	// time.Sleep(delayForServiceChanged) // wait for service updated
+	time.Sleep(delayForServiceChanged) // wait for service updated
 	return nil
 }
 
@@ -128,8 +129,26 @@ func (a *App) CreateService(ctx context.Context, cluster string, tdArn string, s
 	if _, err := a.ecs.CreateServiceWithContext(ctx, createServiceInput); err != nil {
 		return errors.Wrap(err, "failed to create service")
 	}
+
+	time.Sleep(delayForServiceChanged) // wait for service updated
+
 	a.Log("Service is created", *srv.ServiceName)
 
+	return nil
+}
+
+func (a *App) DeleteService(ctx context.Context, name string, cluster string, force bool) error {
+	out, err := a.ecs.DeleteServiceWithContext(ctx, &ecs.DeleteServiceInput{
+		Cluster: aws.String(cluster),
+		Force:   aws.Bool(force),
+		Service: aws.String(name),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	a.Log("Service is deleted", *out.Service.ServiceName)
 	return nil
 }
 
