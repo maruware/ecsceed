@@ -3,6 +3,7 @@ package ecsceed
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 )
@@ -11,6 +12,7 @@ type DeployOption struct {
 	UpdateService      bool
 	ForceNewDeployment *bool
 	AdditionalParams   Params
+	NoWait             bool
 }
 
 func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
@@ -35,7 +37,7 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 	for name, _ := range a.nameToSrv {
 		srvNames = append(srvNames, aws.String(name))
 	}
-	desc, err := a.DescribeServices(ctx, a.cluster, srvNames)
+	desc, err := a.DescribeServices(ctx, srvNames)
 	if err != nil {
 		return err
 	}
@@ -93,15 +95,22 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 			return fmt.Errorf("Bad reference service to task definition")
 		}
 
-		err := a.UpdateServiceTask(ctx, name, a.cluster, tdArn, nil, opt.ForceNewDeployment)
+		err := a.UpdateServiceTask(ctx, name, tdArn, nil, opt.ForceNewDeployment)
 		if err != nil {
 			return err
 		}
 		if opt.UpdateService {
-			_, err := a.UpdateServiceAttributes(ctx, &srv.srv, name, a.cluster, opt.ForceNewDeployment)
+			_, err := a.UpdateServiceAttributes(ctx, &srv.srv, name, opt.ForceNewDeployment)
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	if !opt.NoWait {
+		now := time.Now()
+		if err := a.WaitServiceStable(ctx, now, srvNames); err != nil {
+			return err
 		}
 	}
 
