@@ -7,8 +7,6 @@ It features:
 * Override base config. (mainly for multi stage)
 * Extend Task definition. (e.g. cut out common between web server and worker)
 
-**WIP**
-
 ## Example
 
 See [test_files/example1](test_files/example1)
