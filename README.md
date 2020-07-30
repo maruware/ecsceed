@@ -92,7 +92,7 @@ JSON template uses [text/template](https://golang.org/pkg/text/template/) module
 ### Deploy
 
 ```
-$ ecsceed deploy help                                                                        master ✚
+$ ecsceed deploy help
 NAME:
    ecsceed deploy - deploy
 
@@ -115,7 +115,7 @@ ecsceed deploy -c overlays/develop/config.yml -p ImageTag=$(git rev-parse HEAD)
 ### Run
 
 ```
-$ ecsceed run help                                                                       ✘ 1 master ✚
+$ ecsceed run help
 NAME:
    ecsceed run - run
 
