@@ -1,31 +1,30 @@
 {
-    "deploymentConfiguration": {
-      "maximumPercent": 200,
-      "minimumHealthyPercent": 50
+  "deploymentConfiguration": {
+    "maximumPercent": 200,
+    "minimumHealthyPercent": 50
+  },
+  "desiredCount": 1,
+  "enableECSManagedTags": false,
+  "healthCheckGracePeriodSeconds": 5,
+  "launchType": "EC2",
+  "loadBalancers": [
+    {
+      "containerName": "app",
+      "containerPort": 8080,
+      "targetGroupArn": "{{.ApiTargetGroupArn}}"
+    }
+  ],
+  "placementConstraints": [],
+  "placementStrategy": [
+    {
+      "field": "attribute:ecs.availability-zone",
+      "type": "spread"
     },
-    "desiredCount": 1,
-    "enableECSManagedTags": false,
-    "healthCheckGracePeriodSeconds": 5,
-    "launchType": "EC2",
-    "loadBalancers": [
-      {
-        "containerName": "app",
-        "containerPort": 8080,
-        "targetGroupArn": "{{.ApiTargetGroupArn}}"
-      }
-    ],
-    "placementConstraints": [],
-    "placementStrategy": [
-      {
-        "field": "attribute:ecs.availability-zone",
-        "type": "spread"
-      },
-      {
-        "field": "instanceId",
-        "type": "spread"
-      }
-    ],
-    "schedulingStrategy": "REPLICA",
-    "serviceRegistries": []
-  }
-  
+    {
+      "field": "instanceId",
+      "type": "spread"
+    }
+  ],
+  "schedulingStrategy": "REPLICA",
+  "serviceRegistries": []
+}

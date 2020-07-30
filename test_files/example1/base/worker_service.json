@@ -1,24 +1,23 @@
 {
-    "deploymentConfiguration": {
-      "maximumPercent": 200,
-      "minimumHealthyPercent": 50
+  "deploymentConfiguration": {
+    "maximumPercent": 200,
+    "minimumHealthyPercent": 50
+  },
+  "desiredCount": 1,
+  "enableECSManagedTags": false,
+  "launchType": "EC2",
+  "loadBalancers": [],
+  "placementConstraints": [],
+  "placementStrategy": [
+    {
+      "field": "attribute:ecs.availability-zone",
+      "type": "spread"
     },
-    "desiredCount": 1,
-    "enableECSManagedTags": false,
-    "launchType": "EC2",
-    "loadBalancers": [],
-    "placementConstraints": [],
-    "placementStrategy": [
-      {
-        "field": "attribute:ecs.availability-zone",
-        "type": "spread"
-      },
-      {
-        "field": "instanceId",
-        "type": "spread"
-      }
-    ],
-    "schedulingStrategy": "REPLICA",
-    "serviceRegistries": []
-  }
-  
+    {
+      "field": "instanceId",
+      "type": "spread"
+    }
+  ],
+  "schedulingStrategy": "REPLICA",
+  "serviceRegistries": []
+}

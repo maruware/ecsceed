@@ -1,31 +1,33 @@
 {
-    "containerDefinitions": [
-      {
-        "cpu": 0,
-        "environment": [
-          {"name": "APP_NAME", "value": "awesome-name"}
-        ],
-        "essential": true,
-        "image": "my-image:{{.ImageTag}}",
-        "memoryReservation": 1024,
-        "mountPoints": [],
-        "name": "app",
-        "volumesFrom": [],
-        "logConfiguration": {
-          "logDriver": "awslogs",
-          "options": {
-            "awslogs-group": "{{.LogGroup}}",
-            "awslogs-region": "ap-northeast-1"
-          }
+  "containerDefinitions": [
+    {
+      "cpu": 0,
+      "environment": [
+        {
+          "name": "APP_NAME",
+          "value": "awesome-name"
+        }
+      ],
+      "essential": true,
+      "image": "my-image:{{.ImageTag}}",
+      "memoryReservation": 1024,
+      "mountPoints": [],
+      "name": "app",
+      "volumesFrom": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "{{.LogGroup}}",
+          "awslogs-region": "ap-northeast-1"
         }
       }
-    ],
-    "executionRoleArn": "{{.ExecutionRoleArn}}",
-    "placementConstraints": [],
-    "requiresCompatibilities": [
-      "EC2"
-    ],
-    "taskRoleArn": "{{.TaskRoleArn}}",
-    "volumes": []
-  }
-  
+    }
+  ],
+  "executionRoleArn": "{{.ExecutionRoleArn}}",
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "EC2"
+  ],
+  "taskRoleArn": "{{.TaskRoleArn}}",
+  "volumes": []
+}
