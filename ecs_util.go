@@ -109,7 +109,7 @@ func (a *App) RegisterTaskDefinition(ctx context.Context, td *ecs.TaskDefinition
 	}
 
 	name := arnToName(*out.TaskDefinition.TaskDefinitionArn)
-	a.Log(LogDone(), "registered task definition", LogTarget(name))
+	a.Log(LogDone(), "Registered task definition", LogTarget(name))
 	return out.TaskDefinition, nil
 }
 
@@ -148,11 +148,11 @@ func (a *App) UpdateServiceTask(ctx context.Context, name string, taskDefinition
 
 	_, err := a.ecs.UpdateServiceWithContext(ctx, in)
 	if err != nil {
-		return fmt.Errorf("failed to update service task: %w", err)
+		return fmt.Errorf("Failed to update service task: %w", err)
 	}
 	time.Sleep(delayForServiceChanged) // wait for service updated
 
-	a.Log(LogDone(), "update service task definition",
+	a.Log(LogDone(), "Update service task definition",
 		LogTarget(name), "with", LogTarget(arnToName(taskDefinitionArn)))
 	return nil
 }
@@ -189,7 +189,7 @@ func (a *App) CreateService(ctx context.Context, cluster string, tdArn string, s
 		TaskDefinition:                aws.String(tdArn),
 	}
 	if _, err := a.ecs.CreateServiceWithContext(ctx, createServiceInput); err != nil {
-		return errors.Wrap(err, "failed to create service")
+		return errors.Wrap(err, "Failed to create service")
 	}
 
 	time.Sleep(delayForServiceChanged) // wait for service updated
@@ -314,7 +314,7 @@ func (a *App) RunTask(ctx context.Context, srv ecs.Service, tdArn string, count 
 	}
 
 	task := out.Tasks[0]
-	a.Log("ran task", LogTarget(*task.TaskArn))
+	a.Log("Ran task", LogTarget(*task.TaskArn))
 	return task, nil
 }
 
@@ -396,7 +396,7 @@ func (a *App) WaitRunTask(ctx context.Context, task *ecs.Task, watchContainer *e
 	}()
 
 	if err := a.WaitUntilTaskStopped(ctx, task); err != nil {
-		return errors.Wrap(err, "failed to run task")
+		return errors.Wrap(err, "Failed to run task")
 	}
 	return nil
 }
@@ -421,7 +421,7 @@ func (a *App) DescribeTaskStatus(ctx context.Context, task *ecs.Task, watchConta
 	}
 	if len(out.Failures) > 0 {
 		f := out.Failures[0]
-		return fmt.Errorf("failed to describe task %s: %s", *f.Arn, *f.Reason)
+		return fmt.Errorf("Failed to describe task %s: %s", *f.Arn, *f.Reason)
 	}
 
 	var container *ecs.Container
@@ -471,10 +471,10 @@ func (d *App) FindRollbackTarget(ctx context.Context, tdArn string) (string, err
 			},
 		)
 		if err != nil {
-			return "", errors.Wrap(err, "failed to list taskdefinitions")
+			return "", errors.Wrap(err, "Failed to list taskdefinitions")
 		}
 		if len(out.TaskDefinitionArns) == 0 {
-			return "", errors.New("rollback target is not found")
+			return "", errors.New("Rollback target is not found")
 		}
 		nextToken = out.NextToken
 		for _, t := range out.TaskDefinitionArns {
