@@ -118,7 +118,7 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		fullname := a.resolveFullName(name)
 
 		if opt.DryRun {
-			color.Green("~ service with task definition: service=%s task=%s", fullname, srv.taskDefinition)
+			color.Green("~ service with task definition: %s", fullname)
 		} else {
 			tdArn, ok := nameToTdArn[srv.taskDefinition]
 			if !ok {
