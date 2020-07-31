@@ -118,7 +118,7 @@ func (a *App) UpdateServiceAttributes(ctx context.Context, srv *ecs.Service, nam
 	in.ForceNewDeployment = forceNewDeployment
 
 	in.Service = aws.String(name)
-	in.Cluster = aws.String(a.cluster)
+	in.Cluster = aws.String(a.def.cluster)
 
 	out, err := a.ecs.UpdateServiceWithContext(ctx, in)
 	if err != nil {
@@ -133,7 +133,7 @@ func (a *App) UpdateServiceAttributes(ctx context.Context, srv *ecs.Service, nam
 func (a *App) UpdateServiceTask(ctx context.Context, name string, taskDefinitionArn string, count *int64, forceNewDeployment *bool) error {
 	in := &ecs.UpdateServiceInput{
 		Service:            aws.String(name),
-		Cluster:            aws.String(a.cluster),
+		Cluster:            aws.String(a.def.cluster),
 		TaskDefinition:     aws.String(taskDefinitionArn),
 		DesiredCount:       count,
 		ForceNewDeployment: forceNewDeployment,
@@ -159,7 +159,7 @@ func (a *App) UpdateServiceTask(ctx context.Context, name string, taskDefinition
 
 func (a *App) DescribeServices(ctx context.Context, names []*string) (*ecs.DescribeServicesOutput, error) {
 	return a.ecs.DescribeServicesWithContext(ctx, &ecs.DescribeServicesInput{
-		Cluster:  aws.String(a.cluster),
+		Cluster:  aws.String(a.def.cluster),
 		Services: names,
 	})
 }
@@ -276,7 +276,7 @@ func (a *App) WaitServiceStable(ctx context.Context, startedAt time.Time, names 
 	// }
 	return a.ecs.WaitUntilServicesStableWithContext(
 		ctx, &ecs.DescribeServicesInput{
-			Cluster:  aws.String(a.cluster),
+			Cluster:  aws.String(a.def.cluster),
 			Services: names,
 		},
 	)
@@ -409,7 +409,7 @@ func (a *App) WaitUntilTaskStopped(ctx context.Context, task *ecs.Task) error {
 
 func (a *App) DescribeTasksInput(task *ecs.Task) *ecs.DescribeTasksInput {
 	return &ecs.DescribeTasksInput{
-		Cluster: aws.String(a.cluster),
+		Cluster: aws.String(a.def.cluster),
 		Tasks:   []*string{task.TaskArn},
 	}
 }

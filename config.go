@@ -27,6 +27,8 @@ type Config struct {
 	TaskDefinitions []ConfigTaskDef `yaml:"task_definitions"`
 	Services        []ConfigService `yaml:"services"`
 	Base            string          `yaml:"base"`
+	NamePrefix      string          `yaml:"name_prefix"`
+	NameSuffix      string          `yaml:"name_suffix"`
 
 	dir string
 }

@@ -1,4 +1,5 @@
 base: ../../base/config.yml
+name_suffix: -develop
 
 params:
   LogGroup: /ecs/develop

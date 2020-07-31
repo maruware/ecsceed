@@ -23,7 +23,7 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 
 	nameToTdArn := map[string]string{}
 	// register task def
-	for name, td := range a.nameToTd {
+	for name, td := range a.def.nameToTd {
 		newTd, err := a.RegisterTaskDefinition(ctx, &td)
 		if err != nil {
 			return err
@@ -34,8 +34,8 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 
 	// create service if not exist
 	srvNames := []*string{}
-	for name, _ := range a.nameToSrv {
-		srvNames = append(srvNames, aws.String(name))
+	for name := range a.def.nameToSrv {
+		srvNames = append(srvNames, aws.String(a.resolveFullName(name)))
 	}
 	desc, err := a.DescribeServices(ctx, srvNames)
 	if err != nil {
@@ -43,44 +43,47 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 	}
 
 	for _, d := range desc.Failures {
-		name := arnToName(*d.Arn)
+		fullname := arnToName(*d.Arn)
 
-		a.DebugLog("no exist service", name)
+		a.DebugLog("no exist service", fullname)
 
-		srv := a.nameToSrv[name]
+		name := a.resolveKeyName(fullname)
+
+		srv := a.def.nameToSrv[name]
 		tdArn, ok := nameToTdArn[srv.taskDefinition]
 		if !ok {
 			return fmt.Errorf("Bad reference service to task definition")
 		}
 
 		def := srv.srv
-		def.ServiceName = aws.String(name)
-		err := a.CreateService(ctx, a.cluster, tdArn, def)
+		def.ServiceName = aws.String(fullname)
+		err := a.CreateService(ctx, a.def.cluster, tdArn, def)
 		if err != nil {
 			return err
 		}
 	}
 	for _, d := range desc.Services {
 		if *d.Status == "INACTIVE" {
-			name := *d.ServiceName
+			fullname := *d.ServiceName
+			a.DebugLog("INACTIVE service", fullname)
 
-			a.DebugLog("INACTIVE service", name)
+			name := a.resolveKeyName(fullname)
 
-			srv := a.nameToSrv[name]
+			srv := a.def.nameToSrv[name]
 			tdArn, ok := nameToTdArn[srv.taskDefinition]
 			if !ok {
 				return fmt.Errorf("Bad reference service to task definition")
 			}
 
 			// once delete
-			err := a.DeleteService(ctx, name, a.cluster, true)
+			err := a.DeleteService(ctx, fullname, a.def.cluster, true)
 			if err != nil {
 				return err
 			}
 
 			def := srv.srv
-			def.ServiceName = aws.String(name)
-			err = a.CreateService(ctx, a.cluster, tdArn, def)
+			def.ServiceName = aws.String(fullname)
+			err = a.CreateService(ctx, a.def.cluster, tdArn, def)
 			if err != nil {
 				return err
 			}
@@ -88,19 +91,21 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 	}
 
 	// update service
-	for name, srv := range a.nameToSrv {
+	for name, srv := range a.def.nameToSrv {
 
 		tdArn, ok := nameToTdArn[srv.taskDefinition]
 		if !ok {
 			return fmt.Errorf("Bad reference service to task definition")
 		}
 
-		err := a.UpdateServiceTask(ctx, name, tdArn, nil, opt.ForceNewDeployment)
+		fullname := a.resolveFullName(name)
+
+		err := a.UpdateServiceTask(ctx, fullname, tdArn, nil, opt.ForceNewDeployment)
 		if err != nil {
 			return err
 		}
 		if opt.UpdateService {
-			_, err := a.UpdateServiceAttributes(ctx, &srv.srv, name, opt.ForceNewDeployment)
+			_, err := a.UpdateServiceAttributes(ctx, &srv.srv, fullname, opt.ForceNewDeployment)
 			if err != nil {
 				return err
 			}
