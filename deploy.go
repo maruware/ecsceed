@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/fatih/color"
 )
 
 type DeployOption struct {
@@ -29,8 +30,8 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		td.SetFamily(fullname)
 
 		if opt.DryRun {
-			a.Log("register task definition:", LogTarget(fullname))
-			a.LogJSON(td)
+			color.Green("~ task definition: %s", fullname)
+			PrintJSON(td)
 		} else {
 			newTd, err := a.RegisterTaskDefinition(ctx, &td)
 			if err != nil {
@@ -63,8 +64,8 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		srvDef.ServiceName = aws.String(fullname)
 
 		if opt.DryRun {
-			a.Log("create service:", LogTarget(fullname))
-			a.LogJSON(srvDef)
+			color.Yellow("+ service: %s", fullname)
+			PrintJSON(srvDef)
 		} else {
 			tdArn, ok := nameToTdArn[srv.taskDefinition]
 			if !ok {
@@ -89,8 +90,9 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 			srvDef.ServiceName = aws.String(fullname)
 
 			if opt.DryRun {
-				a.Log("delete and create service:", LogTarget(fullname))
-				a.LogJSON(srvDef)
+				color.Red("- service: %s", fullname)
+				color.Yellow("+ service: %s", fullname)
+				PrintJSON(srvDef)
 			} else {
 				tdArn, ok := nameToTdArn[srv.taskDefinition]
 				if !ok {
@@ -116,7 +118,7 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		fullname := a.resolveFullName(name)
 
 		if opt.DryRun {
-			a.Log("update service task:", LogTarget(fullname), LogTarget(srv.taskDefinition))
+			color.Green("~ service with task definition: service=%s task=%s", fullname, srv.taskDefinition)
 		} else {
 			tdArn, ok := nameToTdArn[srv.taskDefinition]
 			if !ok {
@@ -132,7 +134,8 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		if opt.UpdateService {
 			if opt.DryRun {
 				a.Log("update service attributes:", LogTarget(fullname))
-				a.LogJSON(srv.srv)
+				color.Green("~ service attributes: %s", fullname)
+				PrintJSON(srv.srv)
 			} else {
 				_, err := a.UpdateServiceAttributes(ctx, &srv.srv, fullname, &opt.ForceNewDeployment)
 				if err != nil {
