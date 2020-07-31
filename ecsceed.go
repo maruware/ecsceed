@@ -174,6 +174,6 @@ func (a *App) resolveFullName(name string) string {
 
 func (a *App) resolveKeyName(fullname string) string {
 	n := strings.TrimPrefix(fullname, a.def.namePrefix)
-	n = strings.TrimPrefix(n, a.def.nameSuffix)
+	n = strings.TrimSuffix(n, a.def.nameSuffix)
 	return n
 }
