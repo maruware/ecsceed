@@ -414,8 +414,8 @@ func (a *App) DescribeTasksInput(task *ecs.Task) *ecs.DescribeTasksInput {
 	}
 }
 
-func (d *App) DescribeTaskStatus(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition) error {
-	out, err := d.ecs.DescribeTasksWithContext(ctx, d.DescribeTasksInput(task))
+func (a *App) DescribeTaskStatus(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition) error {
+	out, err := a.ecs.DescribeTasksWithContext(ctx, a.DescribeTasksInput(task))
 	if err != nil {
 		return err
 	}
@@ -445,4 +445,45 @@ func (d *App) DescribeTaskStatus(ctx context.Context, task *ecs.Task, watchConta
 		return fmt.Errorf("Container: %s, Reason: %s", *container.Name, *container.Reason)
 	}
 	return nil
+}
+
+func (a *App) DeregisterTaskDefinition(ctx context.Context, tdArn string) error {
+	_, err := a.ecs.DeregisterTaskDefinitionWithContext(
+		ctx,
+		&ecs.DeregisterTaskDefinitionInput{
+			TaskDefinition: aws.String(tdArn),
+		},
+	)
+	return err
+}
+
+func (d *App) FindRollbackTarget(ctx context.Context, tdArn string) (string, error) {
+	var found bool
+	var nextToken *string
+	family := strings.Split(arnToName(tdArn), ":")[0]
+	for {
+		out, err := d.ecs.ListTaskDefinitionsWithContext(ctx,
+			&ecs.ListTaskDefinitionsInput{
+				NextToken:    nextToken,
+				FamilyPrefix: aws.String(family),
+				MaxResults:   aws.Int64(100),
+				Sort:         aws.String("DESC"),
+			},
+		)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to list taskdefinitions")
+		}
+		if len(out.TaskDefinitionArns) == 0 {
+			return "", errors.New("rollback target is not found")
+		}
+		nextToken = out.NextToken
+		for _, t := range out.TaskDefinitionArns {
+			if found {
+				return *t, nil
+			}
+			if *t == tdArn {
+				found = true
+			}
+		}
+	}
 }
