@@ -24,6 +24,7 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 	nameToTdArn := map[string]string{}
 	// register task def
 	for name, td := range a.def.nameToTd {
+		td.SetFamily(a.resolveFullName(name))
 		newTd, err := a.RegisterTaskDefinition(ctx, &td)
 		if err != nil {
 			return err
