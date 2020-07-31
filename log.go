@@ -33,6 +33,6 @@ func LogTarget(v interface{}) string {
 }
 
 func (a *App) LogJSON(v interface{}) {
-	b, _ := json.Marshal(v)
-	fmt.Print(b)
+	b, _ := json.MarshalIndent(v, "", "  ")
+	fmt.Print(string(b) + "\n")
 }

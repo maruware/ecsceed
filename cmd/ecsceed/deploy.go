@@ -39,6 +39,10 @@ func deployCommand() *cli.Command {
 				Name:  "no-wait",
 				Usage: "no wait for services stable",
 			},
+			&cli.BoolFlag{
+				Name:  "dry-run",
+				Usage: "dry run",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			ctx := context.Background()
@@ -57,6 +61,7 @@ func deployCommand() *cli.Command {
 			updateService := c.Bool("update-service")
 			forceNewDeploy := c.Bool("force-new-deploy")
 			noWait := c.Bool("no-wait")
+			dryRun := c.Bool("dry-run")
 
 			app, err := ecsceed.NewApp(config)
 			if err != nil {
@@ -70,8 +75,9 @@ func deployCommand() *cli.Command {
 			err = app.Deploy(ctx, ecsceed.DeployOption{
 				AdditionalParams:   params,
 				UpdateService:      updateService,
-				ForceNewDeployment: &forceNewDeploy,
+				ForceNewDeployment: forceNewDeploy,
 				NoWait:             noWait,
+				DryRun:             dryRun,
 			})
 			if err != nil {
 				return err
