@@ -37,7 +37,7 @@ func (a *App) Delete(ctx context.Context, opt DeleteOption) error {
 				Service: s.ServiceName,
 			}
 			if _, err := a.ecs.DeleteServiceWithContext(ctx, input); err != nil {
-				return fmt.Errorf("Failed to delete service: %w", err)
+				return fmt.Errorf("Failed to delete service　%s: %w", LogTarget(*s.ServiceName), err)
 			}
 			a.Log("Service is deleted")
 		}
