@@ -107,12 +107,16 @@ func (a *App) Run(ctx context.Context, name string, opt RunOption) error {
 		return err
 	}
 
-	if err := a.WaitRunTask(ctx, task, container, time.Now()); err != nil {
-		return fmt.Errorf("failed to run task: %w", err)
+	if !opt.NoWait {
+		if err := a.WaitRunTask(ctx, task, container, time.Now()); err != nil {
+			return fmt.Errorf("failed to run task: %w", err)
+		}
 	}
+
 	if err := a.DescribeTaskStatus(ctx, task, container); err != nil {
 		return err
 	}
+
 	a.Log("Run task completed!")
 
 	return nil
