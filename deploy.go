@@ -69,7 +69,7 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		} else {
 			tdArn, ok := nameToTdArn[srv.taskDefinition]
 			if !ok {
-				return fmt.Errorf("Bad reference service to task definition")
+				return fmt.Errorf("Bad reference service to task definition: %s %s", name, srv.taskDefinition)
 			}
 
 			err := a.CreateService(ctx, a.def.cluster, tdArn, srvDef)
