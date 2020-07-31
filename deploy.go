@@ -133,7 +133,6 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 
 		if opt.UpdateService {
 			if opt.DryRun {
-				a.Log("update service attributes:", LogTarget(fullname))
 				color.Green("~ service attributes: %s", fullname)
 				PrintJSON(srv.srv)
 			} else {
