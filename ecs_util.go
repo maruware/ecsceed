@@ -421,8 +421,7 @@ func (d *App) DescribeTaskStatus(ctx context.Context, task *ecs.Task, watchConta
 	}
 	if len(out.Failures) > 0 {
 		f := out.Failures[0]
-		d.Log("Task ARN: " + *f.Arn)
-		return errors.New(*f.Reason)
+		return fmt.Errorf("failed to describe task %s: %s", *f.Arn, *f.Reason)
 	}
 
 	var container *ecs.Container
