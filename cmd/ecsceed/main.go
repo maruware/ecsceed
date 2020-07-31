@@ -13,6 +13,7 @@ func main() {
 	app.Commands = []*cli.Command{
 		deployCommand(),
 		runCommand(),
+		rollbackCommand(),
 	}
 
 	err := app.Run(os.Args)

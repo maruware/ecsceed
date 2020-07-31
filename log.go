@@ -32,7 +32,7 @@ func LogTarget(v interface{}) string {
 	return color.CyanString("%+v", v)
 }
 
-func (a *App) LogJSON(v interface{}) {
-	b, _ := json.Marshal(v)
-	fmt.Print(b)
+func PrintJSON(v interface{}) {
+	b, _ := json.MarshalIndent(v, "", "  ")
+	fmt.Print(string(b) + "\n")
 }

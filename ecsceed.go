@@ -2,6 +2,7 @@ package ecsceed
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -17,16 +18,22 @@ type Service struct {
 	taskDefinition string
 }
 
+type Definition struct {
+	params     Params
+	nameToTd   map[string]ecs.TaskDefinition
+	nameToSrv  map[string]Service
+	region     string
+	cluster    string
+	namePrefix string
+	nameSuffix string
+}
+
 type App struct {
 	ecs *ecs.ECS
 	cwl *cloudwatchlogs.CloudWatchLogs
 	cs  ConfigStack
 
-	params    Params
-	nameToTd  map[string]ecs.TaskDefinition
-	nameToSrv map[string]Service
-	region    string
-	cluster   string
+	def Definition
 
 	Debug bool
 }
@@ -40,27 +47,31 @@ func NewApp(path string) (*App, error) {
 }
 
 func NewAppWithConfigStack(cs ConfigStack) *App {
-	var region string
-	var cluster string
+	def := Definition{}
 	for _, c := range cs {
 		if len(c.Region) > 0 {
-			region = c.Region
+			def.region = c.Region
 		}
 		if len(c.Cluster) > 0 {
-			cluster = c.Cluster
+			def.cluster = c.Cluster
+		}
+		if len(c.NamePrefix) > 0 {
+			def.namePrefix = c.NamePrefix
+		}
+		if len(c.NameSuffix) > 0 {
+			def.nameSuffix = c.NameSuffix
 		}
 	}
 
 	config := aws.NewConfig()
-	config.Region = aws.String(region)
+	config.Region = aws.String(def.region)
 	sess := session.New(config)
 
 	return &App{
-		ecs:     ecs.New(sess),
-		cwl:     cloudwatchlogs.New(sess),
-		cs:      cs,
-		region:  region,
-		cluster: cluster,
+		ecs: ecs.New(sess),
+		cwl: cloudwatchlogs.New(sess),
+		cs:  cs,
+		def: def,
 	}
 }
 
@@ -134,25 +145,35 @@ func (a *App) ResolveConfigStack(additionalParams Params) error {
 		}
 	}
 
-	a.params = params
-	a.nameToTd = nameToTd
-	a.nameToSrv = nameToSrv
+	a.def.params = params
+	a.def.nameToTd = nameToTd
+	a.def.nameToSrv = nameToSrv
 
 	return nil
 }
 
 func (a *App) TaskDefinitionsNum() int {
-	return len(a.nameToTd)
+	return len(a.def.nameToTd)
 }
 
 func (a *App) ServicesNum() int {
-	return len(a.nameToSrv)
+	return len(a.def.nameToSrv)
 }
 
 func (a *App) GetTaskDefinition(name string) ecs.TaskDefinition {
-	return a.nameToTd[name]
+	return a.def.nameToTd[name]
 }
 
 func (a *App) GetService(name string) Service {
-	return a.nameToSrv[name]
+	return a.def.nameToSrv[name]
+}
+
+func (a *App) resolveFullName(name string) string {
+	return a.def.namePrefix + name + a.def.nameSuffix
+}
+
+func (a *App) resolveKeyName(fullname string) string {
+	n := strings.TrimPrefix(fullname, a.def.namePrefix)
+	n = strings.TrimSuffix(n, a.def.nameSuffix)
+	return n
 }

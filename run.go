@@ -41,7 +41,7 @@ func (a *App) Run(ctx context.Context, name string, opt RunOption) error {
 		return err
 	}
 
-	if _, ok := a.nameToSrv[name]; !ok {
+	if _, ok := a.def.nameToSrv[name]; !ok {
 		return fmt.Errorf("service %s is undefined", name)
 	}
 
@@ -62,7 +62,7 @@ func (a *App) Run(ctx context.Context, name string, opt RunOption) error {
 		if err != nil {
 			return err
 		}
-		err = loadAndMatchTmpl(path, a.params, &td)
+		err = loadAndMatchTmpl(path, a.def.params, &td)
 		if err != nil {
 			return err
 		}
@@ -107,12 +107,16 @@ func (a *App) Run(ctx context.Context, name string, opt RunOption) error {
 		return err
 	}
 
-	if err := a.WaitRunTask(ctx, task, container, time.Now()); err != nil {
-		return fmt.Errorf("failed to run task: %w", err)
+	if !opt.NoWait {
+		if err := a.WaitRunTask(ctx, task, container, time.Now()); err != nil {
+			return fmt.Errorf("failed to run task: %w", err)
+		}
 	}
+
 	if err := a.DescribeTaskStatus(ctx, task, container); err != nil {
 		return err
 	}
+
 	a.Log("Run task completed!")
 
 	return nil
