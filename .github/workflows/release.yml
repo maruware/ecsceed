@@ -21,4 +21,6 @@ jobs:
       uses: actions/checkout@v2
 
     - name: release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: PATH=~/go/bin:$PATH make release-upload
