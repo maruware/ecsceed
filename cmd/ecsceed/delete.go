@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 
 	"github.com/maruware/ecsceed"
@@ -26,7 +25,6 @@ func deleteCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			ctx := context.Background()
 			config := c.String("config")
 			dryRun := c.Bool("dry-run")
 
@@ -39,7 +37,7 @@ func deleteCommand() *cli.Command {
 				app.Debug = true
 			}
 
-			err = app.Delete(ctx, ecsceed.DeleteOption{
+			err = app.Delete(c.Context, ecsceed.DeleteOption{
 				DryRun: dryRun,
 			})
 			if err != nil {

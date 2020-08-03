@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 
 	"github.com/maruware/ecsceed"
@@ -34,7 +33,6 @@ func rollbackCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			ctx := context.Background()
 			config := c.String("config")
 
 			noWait := c.Bool("no-wait")
@@ -50,7 +48,7 @@ func rollbackCommand() *cli.Command {
 				app.Debug = true
 			}
 
-			err = app.Rollback(ctx, ecsceed.RollbackOption{
+			err = app.Rollback(c.Context, ecsceed.RollbackOption{
 				NoWait:                   noWait,
 				DryRun:                   dryRun,
 				DeregisterTaskDefinition: deregister,

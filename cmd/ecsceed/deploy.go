@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -45,7 +44,6 @@ func deployCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			ctx := context.Background()
 			config := c.String("config")
 			paramsOpt := c.StringSlice("param")
 
@@ -72,7 +70,7 @@ func deployCommand() *cli.Command {
 				app.Debug = true
 			}
 
-			err = app.Deploy(ctx, ecsceed.DeployOption{
+			err = app.Deploy(c.Context, ecsceed.DeployOption{
 				AdditionalParams:   params,
 				UpdateService:      updateService,
 				ForceNewDeployment: forceNewDeploy,

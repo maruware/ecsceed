@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -61,7 +60,6 @@ func runCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			ctx := context.Background()
 			config := c.String("config")
 			paramsOpt := c.StringSlice("param")
 
@@ -102,7 +100,7 @@ func runCommand() *cli.Command {
 				app.Debug = true
 			}
 
-			err = app.Run(ctx, name, ecsceed.RunOption{
+			err = app.Run(c.Context, name, ecsceed.RunOption{
 				AdditionalParams:   params,
 				NoWait:             noWait,
 				Count:              count,
