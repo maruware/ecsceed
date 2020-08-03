@@ -117,7 +117,7 @@ release-targz: $(ARTIFACTS_DIR)
 release-zip: $(ARTIFACTS_DIR)
 	cd $(RELEASE_DIR) && zip -9 $(CURDIR)/$(ARTIFACTS_DIR)/$(PROJECTNAME)_$(GOOS)_$(GOARCH).zip $(PROJECTNAME)_$(GOOS)_$(GOARCH)/*
 
-release-upload: release release-github-token
+release-upload: release
 	ghr -u $(GITHUB_USERNAME) --draft --replace $(VERSION) $(ARTIFACTS_DIR)
 
 test: deps
