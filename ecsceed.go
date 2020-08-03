@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
-const version = "v0.1.1"
+const version = "v0.2.1"
 
 type Service struct {
 	srv            ecs.Service
