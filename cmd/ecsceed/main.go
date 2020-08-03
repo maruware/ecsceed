@@ -14,6 +14,7 @@ func main() {
 		deployCommand(),
 		runCommand(),
 		rollbackCommand(),
+		deleteCommand(),
 	}
 
 	err := app.Run(os.Args)

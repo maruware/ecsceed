@@ -8,10 +8,10 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func rollbackCommand() *cli.Command {
+func deleteCommand() *cli.Command {
 	return &cli.Command{
-		Name:  "rollback",
-		Usage: "rollback",
+		Name:  "delete",
+		Usage: "delete",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:     "config",
@@ -20,24 +20,13 @@ func rollbackCommand() *cli.Command {
 				Usage:    "specify config path",
 			},
 			&cli.BoolFlag{
-				Name:  "no-wait",
-				Usage: "no wait for services stable",
-			},
-			&cli.StringFlag{
 				Name:  "dry-run",
 				Usage: "dry run",
-			},
-			&cli.StringFlag{
-				Name:  "deregister",
-				Usage: "deregister task definition",
 			},
 		},
 		Action: func(c *cli.Context) error {
 			config := c.String("config")
-
-			noWait := c.Bool("no-wait")
 			dryRun := c.Bool("dry-run")
-			deregister := c.Bool("deregister")
 
 			app, err := ecsceed.NewApp(config)
 			if err != nil {
@@ -48,10 +37,8 @@ func rollbackCommand() *cli.Command {
 				app.Debug = true
 			}
 
-			err = app.Rollback(c.Context, ecsceed.RollbackOption{
-				NoWait:                   noWait,
-				DryRun:                   dryRun,
-				DeregisterTaskDefinition: deregister,
+			err = app.Delete(c.Context, ecsceed.DeleteOption{
+				DryRun: dryRun,
 			})
 			if err != nil {
 				return err
