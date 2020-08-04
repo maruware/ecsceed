@@ -9,6 +9,7 @@ import (
 
 func main() {
 	app := cli.NewApp()
+	app.Usage = "A ECS deployment tool"
 
 	app.Commands = []*cli.Command{
 		deployCommand(),
