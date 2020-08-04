@@ -88,8 +88,28 @@ services:
 
 JSON template uses [text/template](https://golang.org/pkg/text/template/) module.
 
+### Commands
 
-### Deploy
+```
+$ ecsceed
+NAME:
+   ecsceed - A ECS deployment tool
+
+USAGE:
+   ecsceed [global options] command [command options] [arguments...]
+
+COMMANDS:
+   deploy    deploy
+   run       run
+   rollback  rollback
+   delete    delete
+   help, h   Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --help, -h  show help (default: false)
+```
+
+#### Deploy
 
 ```
 $ ecsceed deploy help
@@ -112,7 +132,7 @@ OPTIONS:
 ecsceed deploy -c overlays/develop/config.yml -p ImageTag=$(git rev-parse HEAD)
 ```
 
-### Run
+#### Run
 
 ```
 $ ecsceed run help
