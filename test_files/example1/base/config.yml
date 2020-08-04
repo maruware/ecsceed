@@ -9,16 +9,16 @@ params:
   ApiTargetGroupArn: my-alb-target-group-arn
 
 task_definitions:
-  - name: API
+  - name: api
     base_file: common_td.json
     file: api_td.json
-  - name: Worker
+  - name: worker
     base_file: common_td.json
     file: worker_td.json
 services:
-  - name: API
-    task_definition: API
+  - name: test-api
+    task_definition: api
     file: api_service.json
-  - name: Worker
-    task_definition: Worker
+  - name: test-worker
+    task_definition: worker
     file: worker_service.json
