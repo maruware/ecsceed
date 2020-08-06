@@ -12,9 +12,50 @@ import (
 type DeployOption struct {
 	UpdateService      bool
 	ForceNewDeployment bool
+	AutoLogGroup       bool
 	AdditionalParams   Params
 	NoWait             bool
 	DryRun             bool
+}
+
+func (a *App) createLogGroupIfNotExist(ctx context.Context, opt DeployOption) error {
+	groups := map[string]struct{}{}
+
+	for _, td := range a.def.nameToTd {
+		for _, cd := range td.ContainerDefinitions {
+			lc := cd.LogConfiguration
+			if lc != nil && *lc.LogDriver == "awslogs" {
+				group := lc.Options["awslogs-group"]
+				groups[*group] = struct{}{}
+			}
+		}
+	}
+
+	for g := range groups {
+		lgs, err := a.DescribeLogGroups(ctx, g)
+		if err != nil {
+			return err
+		}
+
+		isExist := false
+		for _, lg := range lgs {
+			if *lg.LogGroupName == g {
+				isExist = true
+				break
+			}
+		}
+		if !isExist {
+			if opt.DryRun {
+				color.Green("+ CloudWatch Log Group: %s", g)
+			} else {
+				if err := a.CreateLogGroup(ctx, g); err != nil {
+					return err
+				}
+				a.Log(LogDone(), "Created log group", LogTarget(g))
+			}
+		}
+	}
+	return nil
 }
 
 func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
@@ -39,6 +80,13 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 			}
 			tdArn := *newTd.TaskDefinitionArn
 			nameToTdArn[name] = tdArn
+		}
+	}
+
+	// log group
+	if opt.AutoLogGroup {
+		if err := a.createLogGroupIfNotExist(ctx, opt); err != nil {
+			return err
 		}
 	}
 

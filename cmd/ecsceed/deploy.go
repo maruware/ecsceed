@@ -35,6 +35,10 @@ func deployCommand() *cli.Command {
 				Usage: "force new deploy",
 			},
 			&cli.BoolFlag{
+				Name:  "auto-loggroup",
+				Usage: "auto create log group",
+			},
+			&cli.BoolFlag{
 				Name:  "no-wait",
 				Usage: "no wait for services stable",
 			},
@@ -58,6 +62,7 @@ func deployCommand() *cli.Command {
 
 			updateService := c.Bool("update-service")
 			forceNewDeploy := c.Bool("force-new-deploy")
+			autoLogGroup := c.Bool("auto-loggroup")
 			noWait := c.Bool("no-wait")
 			dryRun := c.Bool("dry-run")
 
@@ -74,6 +79,7 @@ func deployCommand() *cli.Command {
 				AdditionalParams:   params,
 				UpdateService:      updateService,
 				ForceNewDeployment: forceNewDeploy,
+				AutoLogGroup:       autoLogGroup,
 				NoWait:             noWait,
 				DryRun:             dryRun,
 			})
