@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 
+	"github.com/aws/aws-sdk-go/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
@@ -27,9 +28,10 @@ type Definition struct {
 }
 
 type App struct {
-	ecs *ecs.ECS
-	cwl *cloudwatchlogs.CloudWatchLogs
-	cs  ConfigStack
+	ecs         *ecs.ECS
+	cwl         *cloudwatchlogs.CloudWatchLogs
+	autoScaling *applicationautoscaling.ApplicationAutoScaling
+	cs          ConfigStack
 
 	def Definition
 
@@ -66,10 +68,11 @@ func NewAppWithConfigStack(cs ConfigStack) *App {
 	sess := session.New(config)
 
 	return &App{
-		ecs: ecs.New(sess),
-		cwl: cloudwatchlogs.New(sess),
-		cs:  cs,
-		def: def,
+		ecs:         ecs.New(sess),
+		cwl:         cloudwatchlogs.New(sess),
+		autoScaling: applicationautoscaling.New(sess),
+		cs:          cs,
+		def:         def,
 	}
 }
 
