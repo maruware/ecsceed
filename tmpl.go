@@ -11,6 +11,7 @@ func loadAndMatchTmpl(file string, params Params, dst interface{}) error {
 	if err != nil {
 		return err
 	}
+	tpl = tpl.Option("missingkey=error")
 	buf := bytes.NewBuffer(nil)
 	err = tpl.Execute(buf, params)
 	if err != nil {
