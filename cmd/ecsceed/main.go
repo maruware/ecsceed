@@ -16,6 +16,7 @@ func main() {
 		runCommand(),
 		rollbackCommand(),
 		deleteCommand(),
+		statusCommand(),
 	}
 
 	err := app.Run(os.Args)

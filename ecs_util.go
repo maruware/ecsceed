@@ -457,12 +457,12 @@ func (a *App) DeregisterTaskDefinition(ctx context.Context, tdArn string) error 
 	return err
 }
 
-func (d *App) FindRollbackTarget(ctx context.Context, tdArn string) (string, error) {
+func (a *App) FindRollbackTarget(ctx context.Context, tdArn string) (string, error) {
 	var found bool
 	var nextToken *string
 	family := strings.Split(arnToName(tdArn), ":")[0]
 	for {
-		out, err := d.ecs.ListTaskDefinitionsWithContext(ctx,
+		out, err := a.ecs.ListTaskDefinitionsWithContext(ctx,
 			&ecs.ListTaskDefinitionsInput{
 				NextToken:    nextToken,
 				FamilyPrefix: aws.String(family),
@@ -486,4 +486,66 @@ func (d *App) FindRollbackTarget(ctx context.Context, tdArn string) (string, err
 			}
 		}
 	}
+}
+
+func (a *App) DescribeCluster(ctx context.Context, nameOrArn string) (*ecs.Cluster, error) {
+	out, err := a.ecs.DescribeClustersWithContext(ctx, &ecs.DescribeClustersInput{
+		Clusters: []*string{aws.String(nameOrArn)},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(out.Clusters) == 0 {
+		return nil, nil
+	}
+	return out.Clusters[0], nil
+}
+
+func (a *App) ListServiceTasks(ctx context.Context, name string) ([]*ecs.Task, error) {
+	var nextToken *string
+
+	tasks := []*string{}
+	for {
+		out, err := a.ecs.ListTasksWithContext(ctx, &ecs.ListTasksInput{
+			Cluster:     aws.String(a.def.cluster),
+			ServiceName: aws.String(name),
+			NextToken:   nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, out.TaskArns...)
+
+		if out.NextToken != nil {
+			nextToken = out.NextToken
+		} else {
+			break
+		}
+	}
+
+	out, err := a.ecs.DescribeTasksWithContext(ctx, &ecs.DescribeTasksInput{
+		Cluster: aws.String(a.def.cluster),
+		Tasks:   tasks,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return out.Tasks, nil
+}
+
+func (a *App) DescribeContainerInstance(ctx context.Context, arn string) (*ecs.ContainerInstance, error) {
+	out, err := a.ecs.DescribeContainerInstancesWithContext(ctx, &ecs.DescribeContainerInstancesInput{
+		Cluster:            aws.String(a.def.cluster),
+		ContainerInstances: []*string{aws.String(arn)},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(out.ContainerInstances) == 0 {
+		return nil, nil
+	}
+	return out.ContainerInstances[0], nil
 }
