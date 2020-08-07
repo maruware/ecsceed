@@ -1,11 +1,11 @@
 # ecsceed
 
-ECS config base deployment tool.  
-Inspired [ecspresso](https://github.com/kayac/ecspresso) and [kustomize](https://github.com/kubernetes-sigs/kustomize).
+A ECS config base deployment tool.  
+Inspired by [ecspresso](https://github.com/kayac/ecspresso) and [kustomize](https://github.com/kubernetes-sigs/kustomize).
 
 It features: 
 * Override base config. (mainly for multi stage)
-* Extend Task definition. (e.g. cut out common between web server and worker)
+* Extend Task definition. (e.g. cut out common parts between web server and worker)
 
 ## Example
 
@@ -47,7 +47,7 @@ services:
     file: worker_service.json
 ```
 
-* **params** : define variants for JSON (Task Definition and Service) template.
+* **params** : define parameters for JSON (Task Definition and Service) template.
 * **task_definitions** : define Task Definitions
     * **base_file, file** : Task Definition file. file extends base_file.
 * **services** : define Services
@@ -86,7 +86,7 @@ services:
 }
 ```
 
-JSON template uses [text/template](https://golang.org/pkg/text/template/) module.
+JSON template bases on [text/template](https://golang.org/pkg/text/template/) module.
 
 ### Commands
 
