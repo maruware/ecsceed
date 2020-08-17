@@ -80,6 +80,36 @@ func (a *App) Name() string {
 	return "ecsceed"
 }
 
+func cloneEnvironment(o []*ecs.KeyValuePair) []*ecs.KeyValuePair {
+	dst := []*ecs.KeyValuePair{}
+	for _, e := range o {
+		v := ecs.KeyValuePair{
+			Name:  aws.String(*e.Name),
+			Value: aws.String(*e.Value),
+		}
+		dst = append(dst, &v)
+	}
+	return dst
+}
+
+func mergeEnvironment(base []*ecs.KeyValuePair, ex []*ecs.KeyValuePair) []*ecs.KeyValuePair {
+	dst := base
+	for _, p := range ex {
+		dup := false
+		for _, bp := range base {
+			if *bp.Name == *p.Name {
+				dup = true
+				bp.Value = p.Value
+				break
+			}
+		}
+		if !dup {
+			dst = append(dst, p)
+		}
+	}
+	return dst
+}
+
 func (a *App) ResolveConfigStack(additionalParams Params) error {
 	params := Params{}
 	for _, c := range a.cs {
@@ -94,26 +124,52 @@ func (a *App) ResolveConfigStack(additionalParams Params) error {
 	nameToTd := map[string]ecs.TaskDefinition{}
 	for _, c := range a.cs {
 		for _, tdc := range c.TaskDefinitions {
-			var td ecs.TaskDefinition
+			var baseTd ecs.TaskDefinition
 
 			if len(tdc.BaseFile) > 0 {
 				path, err := filepath.Abs(filepath.Join(c.dir, tdc.BaseFile))
 				if err != nil {
 					return err
 				}
-				err = loadAndMatchTmpl(path, params, &td)
+				err = loadAndMatchTmpl(path, params, &baseTd)
 				if err != nil {
 					return err
 				}
 			}
+
+			var td ecs.TaskDefinition = baseTd
 			if len(tdc.File) > 0 {
 				path, err := filepath.Abs(filepath.Join(c.dir, tdc.File))
 				if err != nil {
 					return err
 				}
+
+				baseEnvironment := map[string][]*ecs.KeyValuePair{}
+				for _, bcd := range baseTd.ContainerDefinitions {
+					if len(bcd.Environment) == 0 {
+						continue
+					}
+
+					name := *bcd.Name
+					baseEnvironment[name] = cloneEnvironment(bcd.Environment)
+				}
+
 				err = loadAndMatchTmpl(path, params, &td)
 				if err != nil {
 					return err
+				}
+
+				for name, envs := range baseEnvironment {
+					// merge environment
+					if len(envs) == 0 {
+						continue
+					}
+					for _, cd := range td.ContainerDefinitions {
+						if *cd.Name == name {
+							cd.Environment = mergeEnvironment(envs, cd.Environment)
+							break
+						}
+					}
 				}
 			}
 

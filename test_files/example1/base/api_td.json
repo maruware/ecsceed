@@ -4,6 +4,16 @@
       "command": [
         "/bin/api"
       ],
+      "environment": [
+        {
+          "name": "PORT",
+          "value": "8080"
+        },
+        {
+          "name": "SERVICE",
+          "value": "api"
+        }
+      ],
       "memoryReservation": 1024,
       "portMappings": [
         {

@@ -6,6 +6,10 @@
         {
           "name": "APP_NAME",
           "value": "awesome-name"
+        },
+        {
+          "name": "SERVICE",
+          "value": "undefined"
         }
       ],
       "essential": true,
