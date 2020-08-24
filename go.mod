@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.33.8
 	github.com/fatih/color v1.9.0
 	github.com/imdario/mergo v0.3.10 // indirect
+	github.com/kylelemons/godebug v1.1.0
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-shellwords v1.0.10
 	github.com/morikuni/aec v1.0.0

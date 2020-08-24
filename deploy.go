@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/fatih/color"
+	"github.com/kylelemons/godebug/diff"
 )
 
 type DeployOption struct {
@@ -149,7 +151,20 @@ func (a *App) updateService(ctx context.Context, opt DeployOption, nameToTdArn m
 			if opt.DryRun {
 				color.Green("~ service attributes: %s", fullname)
 				//TODO: diff
-				PrintJSON(srv.srv)
+
+				o, err := a.DescribeServices(ctx, []*string{&fullname})
+				if err != nil {
+					return err
+				}
+				curr := o.Services[0]
+				d, err := diffService(*curr, srv.srv)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println(d)
+
+				// PrintJSON(srv.srv)
 			} else {
 				_, err := a.UpdateServiceAttributes(ctx, &srv.srv, fullname, &opt.ForceNewDeployment)
 				if err != nil {
@@ -159,6 +174,50 @@ func (a *App) updateService(ctx context.Context, opt DeployOption, nameToTdArn m
 		}
 	}
 	return nil
+}
+
+func diffTaskDefinition(a ecs.TaskDefinition, b ecs.TaskDefinition) (string, error) {
+	sortTaskDefinitionForDiff(&a)
+	sortTaskDefinitionForDiff(&b)
+
+	aBytes, err := MarshalJSON(tdToRegisterTaskDefinitionInput(&a))
+	if err != nil {
+		return "", err
+	}
+	bBytes, err := MarshalJSON(tdToRegisterTaskDefinitionInput(&b))
+	if err != nil {
+		return "", err
+	}
+
+	return diff.Diff(string(aBytes), string(bBytes)), nil
+}
+
+func diffService(a ecs.Service, b ecs.Service) (string, error) {
+	sortServiceDefinitionForDiff(&a)
+	sortServiceDefinitionForDiff(&b)
+
+	aBytes, err := MarshalJSON(svToUpdateServiceInput(&a))
+	if err != nil {
+		return "", err
+	}
+	bBytes, err := MarshalJSON(svToUpdateServiceInput(&b))
+	if err != nil {
+		return "", err
+	}
+
+	return diff.Diff(string(aBytes), string(bBytes)), nil
+}
+
+func svToUpdateServiceInput(sv *ecs.Service) *ecs.UpdateServiceInput {
+	return &ecs.UpdateServiceInput{
+		CapacityProviderStrategy:      sv.CapacityProviderStrategy,
+		DeploymentConfiguration:       sv.DeploymentConfiguration,
+		HealthCheckGracePeriodSeconds: sv.HealthCheckGracePeriodSeconds,
+		NetworkConfiguration:          sv.NetworkConfiguration,
+		PlacementConstraints:          sv.PlacementConstraints,
+		PlacementStrategy:             sv.PlacementStrategy,
+		PlatformVersion:               sv.PlatformVersion,
+	}
 }
 
 func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
@@ -174,9 +233,23 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		td.SetFamily(fullname)
 
 		if opt.DryRun {
-			color.Green("~ task definition: %s", fullname)
 			//TODO: diff
-			PrintJSON(td)
+			prevArn, err := a.FindLastTaskDefinition(ctx, fullname)
+			if err != nil {
+				color.Green("+ task definition: %s", fullname)
+				PrintJSON(td)
+			} else {
+				color.Green("~ task definition: %s", fullname)
+				prevTd, err := a.DescribeTaskDefinition(ctx, prevArn)
+				if err != nil {
+					return err
+				}
+				d, err := diffTaskDefinition(*prevTd, td)
+				if err != nil {
+					return err
+				}
+				fmt.Println(d)
+			}
 		} else {
 			newTd, err := a.RegisterTaskDefinition(ctx, &td)
 			if err != nil {
@@ -219,7 +292,7 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 	}
 
 	if !opt.DryRun {
-	a.Log("Deploy Completed!")
+		a.Log("Deploy Completed!")
 	}
 
 	return nil

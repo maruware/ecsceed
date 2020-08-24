@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +21,7 @@ import (
 var isTerminal = isatty.IsTerminal(os.Stdout.Fd())
 var delayForServiceChanged = 3 * time.Second
 var TerminalWidth = 120
+var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 
 var timezone, _ = time.LoadLocation("Local")
 
@@ -97,6 +100,149 @@ func srvToUpdateServiceInput(srv *ecs.Service) *ecs.UpdateServiceInput {
 		PlacementStrategy:             srv.PlacementStrategy,
 		PlatformVersion:               srv.PlatformVersion,
 	}
+}
+
+func sortSlicesInDefinition(t reflect.Type, v reflect.Value, fieldNames ...string) {
+	isSortableField := func(name string) bool {
+		for _, n := range fieldNames {
+			if n == name {
+				return true
+			}
+		}
+		return false
+	}
+	for i := 0; i < t.NumField(); i++ {
+		fv, field := v.Field(i), t.Field(i)
+		if fv.Kind() != reflect.Slice || !fv.CanSet() {
+			continue
+		}
+		if !isSortableField(field.Name) {
+			continue
+		}
+		if size := fv.Len(); size == 0 {
+			fv.Set(reflect.MakeSlice(fv.Type(), 0, 0))
+		} else {
+			slice := make([]reflect.Value, size, size)
+			for i := 0; i < size; i++ {
+				slice[i] = fv.Index(i)
+			}
+			sort.Slice(slice, func(i, j int) bool {
+				iv, jv := reflect.Indirect(slice[i]), reflect.Indirect(slice[j])
+				var is, js string
+				if iv.Kind() == reflect.String && jv.Kind() == reflect.String {
+					is, js = iv.Interface().(string), jv.Interface().(string)
+				} else if iv.Type().Implements(stringerType) && jv.Type().Implements(stringerType) {
+					is, js = iv.Interface().(fmt.Stringer).String(), jv.Interface().(fmt.Stringer).String()
+				}
+				return is < js
+			})
+			sorted := reflect.MakeSlice(fv.Type(), size, size)
+			for i := 0; i < size; i++ {
+				sorted.Index(i).Set(slice[i])
+			}
+			fv.Set(sorted)
+		}
+	}
+}
+
+func equalString(a *string, b string) bool {
+	if a == nil {
+		return b == ""
+	}
+	return *a == b
+}
+
+func sortServiceDefinitionForDiff(sv *ecs.Service) {
+	sortSlicesInDefinition(
+		reflect.TypeOf(*sv), reflect.Indirect(reflect.ValueOf(sv)),
+		"PlacementConstraints",
+		"PlacementStrategy",
+		"RequiresCompatibilities",
+	)
+	if equalString(sv.LaunchType, ecs.LaunchTypeFargate) && sv.PlatformVersion == nil {
+		sv.PlatformVersion = aws.String("LATEST")
+	}
+	if sv.SchedulingStrategy == nil && sv.DeploymentConfiguration == nil {
+		sv.DeploymentConfiguration = &ecs.DeploymentConfiguration{
+			MaximumPercent:        aws.Int64(200),
+			MinimumHealthyPercent: aws.Int64(100),
+		}
+	} else if equalString(sv.SchedulingStrategy, ecs.SchedulingStrategyDaemon) && sv.DeploymentConfiguration == nil {
+		sv.DeploymentConfiguration = &ecs.DeploymentConfiguration{
+			MaximumPercent:        aws.Int64(100),
+			MinimumHealthyPercent: aws.Int64(0),
+		}
+	}
+
+	if len(sv.LoadBalancers) > 0 && sv.HealthCheckGracePeriodSeconds == nil {
+		sv.HealthCheckGracePeriodSeconds = aws.Int64(0)
+	}
+	if nc := sv.NetworkConfiguration; nc != nil {
+		if ac := nc.AwsvpcConfiguration; ac != nil {
+			if ac.AssignPublicIp == nil {
+				ac.AssignPublicIp = aws.String(ecs.AssignPublicIpDisabled)
+			}
+			sortSlicesInDefinition(
+				reflect.TypeOf(*ac),
+				reflect.Indirect(reflect.ValueOf(ac)),
+				"SecurityGroups",
+				"Subnets",
+			)
+		}
+	}
+}
+
+func sortTaskDefinitionForDiff(td *ecs.TaskDefinition) {
+	for _, cd := range td.ContainerDefinitions {
+		if cd.Cpu == nil {
+			cd.Cpu = aws.Int64(0)
+		}
+		sortSlicesInDefinition(
+			reflect.TypeOf(*cd), reflect.Indirect(reflect.ValueOf(cd)),
+			"Environment",
+			"MountPoints",
+			"PortMappings",
+			"VolumesFrom",
+			"Secrets",
+		)
+	}
+	sortSlicesInDefinition(
+		reflect.TypeOf(*td), reflect.Indirect(reflect.ValueOf(td)),
+		"ContainerDefinitions",
+		"PlacementConstraints",
+		"RequiresCompatibilities",
+		"Volumes",
+	)
+	if td.Cpu != nil {
+		td.Cpu = toNumberCPU(*td.Cpu)
+	}
+	if td.Memory != nil {
+		td.Memory = toNumberMemory(*td.Memory)
+	}
+}
+
+func toNumberCPU(cpu string) *string {
+	if i := strings.Index(strings.ToLower(cpu), "vcpu"); i > 0 {
+		if ns, err := strconv.ParseFloat(strings.Trim(cpu[0:i], " "), 64); err != nil {
+			return nil
+		} else {
+			nn := fmt.Sprintf("%d", int(ns*1024))
+			return &nn
+		}
+	}
+	return &cpu
+}
+
+func toNumberMemory(memory string) *string {
+	if i := strings.Index(memory, "GB"); i > 0 {
+		if ns, err := strconv.ParseFloat(strings.Trim(memory[0:i], " "), 64); err != nil {
+			return nil
+		} else {
+			nn := fmt.Sprintf("%d", int(ns*1024))
+			return &nn
+		}
+	}
+	return &memory
 }
 
 func (a *App) RegisterTaskDefinition(ctx context.Context, td *ecs.TaskDefinition) (*ecs.TaskDefinition, error) {
@@ -485,6 +631,27 @@ func (a *App) FindRollbackTarget(ctx context.Context, tdArn string) (string, err
 				found = true
 			}
 		}
+	}
+}
+
+func (a *App) FindLastTaskDefinition(ctx context.Context, tdName string) (string, error) {
+	family := strings.Split(tdName, ":")[0]
+	for {
+		out, err := a.ecs.ListTaskDefinitionsWithContext(ctx,
+			&ecs.ListTaskDefinitionsInput{
+				NextToken:    nil,
+				FamilyPrefix: aws.String(family),
+				MaxResults:   aws.Int64(100),
+				Sort:         aws.String("DESC"),
+			},
+		)
+		if err != nil {
+			return "", errors.Wrap(err, "Failed to list taskdefinitions")
+		}
+		if len(out.TaskDefinitionArns) == 0 {
+			return "", errors.New("Rollback target is not found")
+		}
+		return *out.TaskDefinitionArns[0], nil
 	}
 }
 
