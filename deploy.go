@@ -58,43 +58,7 @@ func (a *App) createLogGroupIfNotExist(ctx context.Context, opt DeployOption) er
 	return nil
 }
 
-func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
-	err := a.ResolveConfigStack(opt.AdditionalParams)
-	if err != nil {
-		return err
-	}
-
-	nameToTdArn := map[string]string{}
-	// register task def
-	for name, td := range a.def.nameToTd {
-		fullname := a.resolveFullName(name)
-		td.SetFamily(fullname)
-
-		if opt.DryRun {
-			color.Green("~ task definition: %s", fullname)
-			PrintJSON(td)
-		} else {
-			newTd, err := a.RegisterTaskDefinition(ctx, &td)
-			if err != nil {
-				return err
-			}
-			tdArn := *newTd.TaskDefinitionArn
-			nameToTdArn[name] = tdArn
-		}
-	}
-
-	// log group
-	if opt.AutoLogGroup {
-		if err := a.createLogGroupIfNotExist(ctx, opt); err != nil {
-			return err
-		}
-	}
-
-	// create service if not exist
-	srvNames := []*string{}
-	for name := range a.def.nameToSrv {
-		srvNames = append(srvNames, aws.String(a.resolveFullName(name)))
-	}
+func (a *App) createServiceIfNotExist(ctx context.Context, opt DeployOption, srvNames []*string, nameToTdArn map[string]string) error {
 	desc, err := a.DescribeServices(ctx, srvNames)
 	if err != nil {
 		return err
@@ -160,8 +124,10 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 			}
 		}
 	}
+	return nil
+}
 
-	// update service
+func (a *App) updateService(ctx context.Context, opt DeployOption, nameToTdArn map[string]string) error {
 	for name, srv := range a.def.nameToSrv {
 		fullname := a.resolveFullName(name)
 
@@ -182,6 +148,7 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		if opt.UpdateService {
 			if opt.DryRun {
 				color.Green("~ service attributes: %s", fullname)
+				//TODO: diff
 				PrintJSON(srv.srv)
 			} else {
 				_, err := a.UpdateServiceAttributes(ctx, &srv.srv, fullname, &opt.ForceNewDeployment)
@@ -190,6 +157,58 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 				}
 			}
 		}
+	}
+	return nil
+}
+
+func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
+	err := a.ResolveConfigStack(opt.AdditionalParams)
+	if err != nil {
+		return err
+	}
+
+	nameToTdArn := map[string]string{}
+	// register task def
+	for name, td := range a.def.nameToTd {
+		fullname := a.resolveFullName(name)
+		td.SetFamily(fullname)
+
+		if opt.DryRun {
+			color.Green("~ task definition: %s", fullname)
+			//TODO: diff
+			PrintJSON(td)
+		} else {
+			newTd, err := a.RegisterTaskDefinition(ctx, &td)
+			if err != nil {
+				return err
+			}
+			tdArn := *newTd.TaskDefinitionArn
+			nameToTdArn[name] = tdArn
+		}
+	}
+
+	// log group
+	if opt.AutoLogGroup {
+		if err := a.createLogGroupIfNotExist(ctx, opt); err != nil {
+			return err
+		}
+	}
+
+	// create service if not exist
+	srvNames := []*string{}
+	for name := range a.def.nameToSrv {
+		srvNames = append(srvNames, aws.String(a.resolveFullName(name)))
+	}
+
+	err = a.createServiceIfNotExist(ctx, opt, srvNames, nameToTdArn)
+	if err != nil {
+		return err
+	}
+
+	// update service
+	err = a.updateService(ctx, opt, nameToTdArn)
+	if err != nil {
+		return err
 	}
 
 	if !opt.NoWait && !opt.DryRun {
