@@ -218,7 +218,9 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		}
 	}
 
+	if !opt.DryRun {
 	a.Log("Deploy Completed!")
+	}
 
 	return nil
 }
