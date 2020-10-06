@@ -267,27 +267,29 @@ func (a *App) Deploy(ctx context.Context, opt DeployOption) error {
 		}
 	}
 
-	// create service if not exist
-	srvNames := []*string{}
-	for name := range a.def.nameToSrv {
-		srvNames = append(srvNames, aws.String(a.resolveFullName(name)))
-	}
+	if len(a.def.nameToSrv) > 0 {
+		// create service if not exist
+		srvNames := []*string{}
+		for name := range a.def.nameToSrv {
+			srvNames = append(srvNames, aws.String(a.resolveFullName(name)))
+		}
 
-	err = a.createServiceIfNotExist(ctx, opt, srvNames, nameToTdArn)
-	if err != nil {
-		return err
-	}
-
-	// update service
-	err = a.updateService(ctx, opt, nameToTdArn)
-	if err != nil {
-		return err
-	}
-
-	if !opt.NoWait && !opt.DryRun {
-		now := time.Now()
-		if err := a.WaitServiceStable(ctx, now, srvNames); err != nil {
+		err = a.createServiceIfNotExist(ctx, opt, srvNames, nameToTdArn)
+		if err != nil {
 			return err
+		}
+
+		// update service
+		err = a.updateService(ctx, opt, nameToTdArn)
+		if err != nil {
+			return err
+		}
+
+		if !opt.NoWait && !opt.DryRun {
+			now := time.Now()
+			if err := a.WaitServiceStable(ctx, now, srvNames); err != nil {
+				return err
+			}
 		}
 	}
 
