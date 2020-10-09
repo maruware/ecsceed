@@ -479,7 +479,7 @@ func (a *App) GetLogInfo(task *ecs.Task, c *ecs.ContainerDefinition) (string, st
 	return logGroup, logStream
 }
 
-func (a *App) GetLogEventsInput(logGroup string, logStream string, startAt int64) *cloudwatchlogs.GetLogEventsInput {
+func getLogEventsInput(logGroup string, logStream string, startAt int64) *cloudwatchlogs.GetLogEventsInput {
 	return &cloudwatchlogs.GetLogEventsInput{
 		LogGroupName:  aws.String(logGroup),
 		LogStreamName: aws.String(logStream),
@@ -489,7 +489,7 @@ func (a *App) GetLogEventsInput(logGroup string, logStream string, startAt int64
 
 func (a *App) GetLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time) (int, error) {
 	ms := startedAt.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
-	out, err := a.cwl.GetLogEventsWithContext(ctx, a.GetLogEventsInput(logGroup, logStream, ms))
+	out, err := a.cwl.GetLogEventsWithContext(ctx, getLogEventsInput(logGroup, logStream, ms))
 	if err != nil {
 		return 0, err
 	}
