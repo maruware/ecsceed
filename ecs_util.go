@@ -56,9 +56,10 @@ func formatEvent(e *ecs.ServiceEvent, chars int) []string {
 	return lines
 }
 
-func formatLogEvent(e *cloudwatchlogs.OutputLogEvent, chars int) []string {
+func formatLogEvent(e *cloudwatchlogs.OutputLogEvent, prefix string, chars int) []string {
 	t := time.Unix((*e.Timestamp / int64(1000)), 0)
-	line := fmt.Sprintf("%s \t%s",
+	line := fmt.Sprintf("%s%s \t%s",
+		prefix,
 		t.In(timezone).Format("2006/01/02 15:04:05"),
 		*e.Message,
 	)
@@ -487,7 +488,7 @@ func getLogEventsInput(logGroup string, logStream string, startAt int64) *cloudw
 	}
 }
 
-func (a *App) GetLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time) (int, error) {
+func (a *App) GetLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time, prefix string) (int, error) {
 	ms := startedAt.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 	out, err := a.cwl.GetLogEventsWithContext(ctx, getLogEventsInput(logGroup, logStream, ms))
 	if err != nil {
@@ -498,7 +499,7 @@ func (a *App) GetLogEvents(ctx context.Context, logGroup string, logStream strin
 	}
 	lines := 0
 	for _, event := range out.Events {
-		for _, line := range formatLogEvent(event, TerminalWidth) {
+		for _, line := range formatLogEvent(event, prefix, TerminalWidth) {
 			fmt.Println(line)
 			lines++
 		}
@@ -506,9 +507,7 @@ func (a *App) GetLogEvents(ctx context.Context, logGroup string, logStream strin
 	return lines, nil
 }
 
-func (a *App) WatchLogs(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition, startedAt time.Time) {
-	logGroup, logStream := a.GetLogInfo(task, watchContainer)
-
+func (a *App) WatchLogs(ctx context.Context, logGroup, logStream string, startedAt time.Time, prefix string) {
 	tick := time.Tick(5 * time.Second)
 
 	var lines int
@@ -522,14 +521,13 @@ func (a *App) WatchLogs(ctx context.Context, task *ecs.Task, watchContainer *ecs
 					fmt.Print(aec.EraseLine(aec.EraseModes.All), aec.PreviousLine(1))
 				}
 			}
-			lines, _ = a.GetLogEvents(ctx, logGroup, logStream, startedAt)
+			lines, _ = a.GetLogEvents(ctx, logGroup, logStream, startedAt, prefix)
 		}
 	}
 }
 
-func (a *App) ShowLogs(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition, startedAt time.Time) {
-	logGroup, logStream := a.GetLogInfo(task, watchContainer)
-	a.GetLogEvents(ctx, logGroup, logStream, startedAt)
+func (a *App) ShowLogs(ctx context.Context, logGroup, logStream string, startedAt time.Time, prefix string) {
+	a.GetLogEvents(ctx, logGroup, logStream, startedAt, prefix)
 }
 
 func (a *App) WaitRunTask(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition, startedAt time.Time) error {
@@ -546,10 +544,11 @@ func (a *App) WaitRunTask(ctx context.Context, task *ecs.Task, watchContainer *e
 		return nil
 	}
 
+	logGroup, logStream := a.GetLogInfo(task, watchContainer)
 	time.Sleep(3 * time.Second) // wait for log stream
 
 	go func() {
-		a.WatchLogs(waitCtx, task, watchContainer, startedAt)
+		a.WatchLogs(waitCtx, logGroup, logStream, startedAt, "")
 	}()
 
 	if err := a.WaitUntilTaskStopped(ctx, task); err != nil {

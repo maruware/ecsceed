@@ -92,18 +92,24 @@ func (a *App) Logs(ctx context.Context, name string, opt LogsOption) error {
 		return err
 	}
 
-	if opt.Tail {
-		for _, task := range tasks {
-			go a.WatchLogs(ctx, task, container, startTime)
+	for _, task := range tasks {
+		logGroup, logStream := a.GetLogInfo(task, container)
+		nl := strings.Split(logStream, "/")
+		prefix := fmt.Sprintf("[%s] ", nl[len(nl)-1])
+
+		if opt.Tail {
+			go a.WatchLogs(ctx, logGroup, logStream, startTime, prefix)
+		} else {
+			a.ShowLogs(ctx, logGroup, logStream, startTime, prefix)
 		}
+	}
+
+	if opt.Tail {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	} else {
-		for _, task := range tasks {
-			a.ShowLogs(ctx, task, container, startTime)
-		}
 		return nil
 	}
 }
