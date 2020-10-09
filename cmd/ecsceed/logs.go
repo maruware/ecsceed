@@ -36,6 +36,15 @@ func logsCommand() *cli.Command {
 				Name:  "container",
 				Usage: "specify container name",
 			},
+			&cli.StringFlag{
+				Name:  "start-time",
+				Usage: "start time",
+			},
+			&cli.BoolFlag{
+				Name:    "tail",
+				Aliases: []string{"t"},
+				Usage:   "tail",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			config := c.String("config")
@@ -51,8 +60,9 @@ func logsCommand() *cli.Command {
 			}
 
 			container := c.String("container")
-
 			name := c.String("service")
+			startTime := c.String("start-time")
+			tail := c.Bool("tail")
 
 			app, err := ecsceed.NewApp(config)
 			if err != nil {
@@ -66,6 +76,8 @@ func logsCommand() *cli.Command {
 			err = app.Logs(c.Context, name, ecsceed.LogsOption{
 				AdditionalParams: params,
 				ContainerName:    container,
+				StartTime:        startTime,
+				Tail:             tail,
 			})
 			if err != nil {
 				return err

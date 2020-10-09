@@ -527,6 +527,11 @@ func (a *App) WatchLogs(ctx context.Context, task *ecs.Task, watchContainer *ecs
 	}
 }
 
+func (a *App) ShowLogs(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition, startedAt time.Time) {
+	logGroup, logStream := a.GetLogInfo(task, watchContainer)
+	a.GetLogEvents(ctx, logGroup, logStream, startedAt)
+}
+
 func (a *App) WaitRunTask(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition, startedAt time.Time) error {
 	a.Log("Waiting for run task...(it may take a while)")
 	waitCtx, cancel := context.WithCancel(ctx)
