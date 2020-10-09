@@ -506,6 +506,27 @@ func (a *App) GetLogEvents(ctx context.Context, logGroup string, logStream strin
 	return lines, nil
 }
 
+func (a *App) WatchLogs(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition, startedAt time.Time) {
+	logGroup, logStream := a.GetLogInfo(task, watchContainer)
+
+	tick := time.Tick(5 * time.Second)
+
+	var lines int
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick:
+			if isTerminal {
+				for i := 0; i < lines; i++ {
+					fmt.Print(aec.EraseLine(aec.EraseModes.All), aec.PreviousLine(1))
+				}
+			}
+			lines, _ = a.GetLogEvents(ctx, logGroup, logStream, startedAt)
+		}
+	}
+}
+
 func (a *App) WaitRunTask(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition, startedAt time.Time) error {
 	a.Log("Waiting for run task...(it may take a while)")
 	waitCtx, cancel := context.WithCancel(ctx)
@@ -520,25 +541,10 @@ func (a *App) WaitRunTask(ctx context.Context, task *ecs.Task, watchContainer *e
 		return nil
 	}
 
-	logGroup, logStream := a.GetLogInfo(task, watchContainer)
 	time.Sleep(3 * time.Second) // wait for log stream
 
 	go func() {
-		tick := time.Tick(5 * time.Second)
-		var lines int
-		for {
-			select {
-			case <-waitCtx.Done():
-				return
-			case <-tick:
-				if isTerminal {
-					for i := 0; i < lines; i++ {
-						fmt.Print(aec.EraseLine(aec.EraseModes.All), aec.PreviousLine(1))
-					}
-				}
-				lines, _ = a.GetLogEvents(waitCtx, logGroup, logStream, startedAt)
-			}
-		}
+		a.WatchLogs(waitCtx, task, watchContainer, startedAt)
 	}()
 
 	if err := a.WaitUntilTaskStopped(ctx, task); err != nil {
