@@ -1,0 +1,13 @@
+inputs:
+  version:
+    description: "A version to install ecsceed"
+    default: "v0.4.1"
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        curl https://github.com/maruware/ecsceed/releases/download/${{ inputs.version }}/ecsceed_linux_amd64.tar.gz -L | tar zx -C /tmp
+        sudo cp /tmp/ecsceed_linux_amd64/ecsceed /usr/local/bin/ecsceed
+        sudo chmod +x /usr/local/bin/ecsceed
+        rm -rf /tmp/ecsceed_linux_amd64
+      shell: bash
