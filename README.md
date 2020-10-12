@@ -184,5 +184,5 @@ OPTIONS:
 ```
 
 ```
-ecsceed logs --config ./ecs/overlays/develop/config.yml -s room --container app --start-time 1m -t
+ecsceed logs --config ./ecs/overlays/develop/config.yml -s api --container app --start-time 1m -t
 ```
