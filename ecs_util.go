@@ -488,23 +488,34 @@ func getLogEventsInput(logGroup string, logStream string, startAt int64) *cloudw
 	}
 }
 
-func (a *App) PrintLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time, prefix string) (int, error) {
+func (a *App) GetLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time, prefix string) ([]string, error) {
 	ms := startedAt.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 	out, err := a.cwl.GetLogEventsWithContext(ctx, getLogEventsInput(logGroup, logStream, ms))
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	if len(out.Events) == 0 {
-		return 0, nil
+		return []string{}, nil
 	}
-	lines := 0
+	lines := []string{}
 	for _, event := range out.Events {
 		for _, line := range formatLogEvent(event, prefix, TerminalWidth) {
-			fmt.Println(line)
-			lines++
+			lines = append(lines, line)
 		}
 	}
 	return lines, nil
+}
+
+func (a *App) PrintLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time, prefix string) (int, error) {
+	lines, err := a.GetLogEvents(ctx, logGroup, logStream, startedAt, prefix)
+	if err != nil {
+		return 0, err
+	}
+	for _, line := range lines {
+		fmt.Println(line)
+	}
+
+	return len(lines), nil
 }
 
 func (a *App) WatchLogs(ctx context.Context, logGroup, logStream string, startedAt time.Time, prefix string) {
