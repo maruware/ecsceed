@@ -488,51 +488,49 @@ func getLogEventsInput(logGroup string, logStream string, startAt int64) *cloudw
 	}
 }
 
-func (a *App) GetLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time, prefix string) ([]string, error) {
+func (a *App) PrintLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time, prefix string) (int, error) {
 	ms := startedAt.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 	out, err := a.cwl.GetLogEventsWithContext(ctx, getLogEventsInput(logGroup, logStream, ms))
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
+
 	if len(out.Events) == 0 {
-		return []string{}, nil
+		return 0, nil
 	}
-	lines := []string{}
+	var lines int
 	for _, event := range out.Events {
 		for _, line := range formatLogEvent(event, prefix, TerminalWidth) {
-			lines = append(lines, line)
+			fmt.Println(line)
+			lines++
 		}
 	}
+
 	return lines, nil
 }
 
-func (a *App) PrintLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time, prefix string) (int, error) {
-	lines, err := a.GetLogEvents(ctx, logGroup, logStream, startedAt, prefix)
-	if err != nil {
-		return 0, err
-	}
-	for _, line := range lines {
-		fmt.Println(line)
-	}
-
-	return len(lines), nil
-}
-
-func (a *App) WatchLogs(ctx context.Context, logGroup, logStream string, startedAt time.Time, prefix string) {
+func (a *App) WatchLogs(ctx context.Context, logGroup, logStream string, startedAt time.Time, prefix string) error {
 	tick := time.Tick(5 * time.Second)
 
-	var lines int
+	ms := startedAt.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
+
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		case <-tick:
-			if isTerminal {
-				for i := 0; i < lines; i++ {
-					fmt.Print(aec.EraseLine(aec.EraseModes.All), aec.PreviousLine(1))
+			o, err := a.cwl.GetLogEventsWithContext(ctx, getLogEventsInput(logGroup, logStream, ms))
+			if err != nil {
+				return err
+			}
+			for _, ev := range o.Events {
+				for _, line := range formatLogEvent(ev, prefix, TerminalWidth) {
+					fmt.Println(line)
 				}
 			}
-			lines, _ = a.PrintLogEvents(ctx, logGroup, logStream, startedAt, prefix)
+			if len(o.Events) > 0 {
+				ms = *o.Events[len(o.Events)-1].Timestamp + 1
+			}
 		}
 	}
 }
