@@ -488,7 +488,7 @@ func getLogEventsInput(logGroup string, logStream string, startAt int64) *cloudw
 	}
 }
 
-func (a *App) GetLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time, prefix string) (int, error) {
+func (a *App) PrintLogEvents(ctx context.Context, logGroup string, logStream string, startedAt time.Time, prefix string) (int, error) {
 	ms := startedAt.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 	out, err := a.cwl.GetLogEventsWithContext(ctx, getLogEventsInput(logGroup, logStream, ms))
 	if err != nil {
@@ -521,13 +521,13 @@ func (a *App) WatchLogs(ctx context.Context, logGroup, logStream string, started
 					fmt.Print(aec.EraseLine(aec.EraseModes.All), aec.PreviousLine(1))
 				}
 			}
-			lines, _ = a.GetLogEvents(ctx, logGroup, logStream, startedAt, prefix)
+			lines, _ = a.PrintLogEvents(ctx, logGroup, logStream, startedAt, prefix)
 		}
 	}
 }
 
 func (a *App) ShowLogs(ctx context.Context, logGroup, logStream string, startedAt time.Time, prefix string) {
-	a.GetLogEvents(ctx, logGroup, logStream, startedAt, prefix)
+	a.PrintLogEvents(ctx, logGroup, logStream, startedAt, prefix)
 }
 
 func (a *App) WaitRunTask(ctx context.Context, task *ecs.Task, watchContainer *ecs.ContainerDefinition, startedAt time.Time) error {
