@@ -104,6 +104,7 @@ COMMANDS:
    rollback  rollback
    delete    delete
    status    status
+   logs      logs
    help, h   Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
@@ -158,4 +159,30 @@ OPTIONS:
 
 ```bash
 ecsceed run -c overlays/develop/config.yml -s api --command "echo test"
+```
+
+#### Logs
+
+Show / watch logs
+
+```
+$ ecsceed logs help
+NAME:
+   ecsceed logs - logs
+
+USAGE:
+   ecsceed logs [command options] [arguments...]
+
+OPTIONS:
+   --service value, -s value  service name
+   --config value, -c value   specify config path
+   --param value, -p value    additional params
+   --container value          specify container name
+   --start-time value         start time
+   --tail, -t                 tail (default: false)
+   --help, -h                 show help (default: false)
+```
+
+```
+ecsceed logs --config ./ecs/overlays/develop/config.yml -s room --container app --start-time 1m -t
 ```
