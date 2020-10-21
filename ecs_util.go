@@ -311,6 +311,17 @@ func (a *App) DescribeServices(ctx context.Context, names []*string) (*ecs.Descr
 	})
 }
 
+func (a *App) DescribeService(ctx context.Context, name *string) (*ecs.Service, error) {
+	o, err := a.DescribeServices(ctx, []*string{name})
+	if err != nil {
+		return nil, err
+	}
+	if len(o.Services) == 0 {
+		return nil, fmt.Errorf("not found service %s", *name)
+	}
+	return o.Services[0], nil
+}
+
 func (a *App) CreateService(ctx context.Context, cluster string, tdArn string, srv ecs.Service) error {
 	a.Log("Starting create service", *srv.ServiceName)
 

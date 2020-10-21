@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/aws/aws-sdk-go/aws"
 )
 
 type LogsOption struct {
@@ -67,16 +65,18 @@ func (a *App) Logs(ctx context.Context, name string, opt LogsOption) error {
 		return err
 	}
 
-	if _, ok := a.def.nameToSrv[name]; !ok {
+	_, ok := a.def.nameToSrv[name]
+
+	if !ok {
 		return fmt.Errorf("service %s is undefined", name)
 	}
 
-	descSrvs, err := a.DescribeServices(ctx, []*string{aws.String(name)})
+	fullname := a.resolveFullName(name)
+
+	srv, err := a.DescribeService(ctx, &fullname)
 	if err != nil {
 		return err
 	}
-
-	srv := descSrvs.Services[0]
 
 	tdArn := srv.TaskDefinition
 	td, err := a.DescribeTaskDefinition(ctx, *tdArn)

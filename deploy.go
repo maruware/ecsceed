@@ -152,11 +152,10 @@ func (a *App) updateService(ctx context.Context, opt DeployOption, nameToTdArn m
 				color.Green("~ service attributes: %s", fullname)
 				//TODO: diff
 
-				o, err := a.DescribeServices(ctx, []*string{&fullname})
+				curr, err := a.DescribeService(ctx, &fullname)
 				if err != nil {
 					return err
 				}
-				curr := o.Services[0]
 				d, err := diffService(*curr, srv.srv)
 				if err != nil {
 					return err

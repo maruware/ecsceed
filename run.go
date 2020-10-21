@@ -45,12 +45,12 @@ func (a *App) Run(ctx context.Context, name string, opt RunOption) error {
 		return fmt.Errorf("service %s is undefined", name)
 	}
 
-	descSrvs, err := a.DescribeServices(ctx, []*string{aws.String(name)})
+	fullname := a.resolveFullName(name)
+
+	srv, err := a.DescribeService(ctx, &fullname)
 	if err != nil {
 		return err
 	}
-
-	srv := descSrvs.Services[0]
 
 	var tdArn *string
 	var container *ecs.ContainerDefinition
